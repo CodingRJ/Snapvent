@@ -3,16 +3,19 @@
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, MoreVertical, Copy, Share2, Trash2 } from "lucide-react";
-import { getPhotoById, getUserById } from "@/app/data/mock";
+import { getUserById } from "@/app/data/mock";
+import { useGroups } from "@/app/context/GroupsContext";
 import { useState } from "react";
 
 export default function SinglePhotoPage() {
   const { groupId, photoId } = useParams();
   const router = useRouter();
+  const { getPhotoById } = useGroups();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const photo = getPhotoById(photoId);
   const uploader = photo ? getUserById(photo.uploaderId) : null;
+  const isDataUrl = photo?.imageUrl?.startsWith("data:");
 
   if (!photo) {
     return (
@@ -67,14 +70,22 @@ export default function SinglePhotoPage() {
       {/* Full Image */}
       <div className="flex flex-1 items-center justify-center">
         <div className="relative aspect-square w-full">
-          <Image
-            src={photo.imageUrl}
-            alt=""
-            fill
-            className="object-contain"
-            sizes="430px"
-            priority
-          />
+          {isDataUrl ? (
+            <img
+              src={photo.imageUrl}
+              alt=""
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <Image
+              src={photo.imageUrl}
+              alt=""
+              fill
+              className="object-contain"
+              sizes="430px"
+              priority
+            />
+          )}
         </div>
       </div>
     </div>

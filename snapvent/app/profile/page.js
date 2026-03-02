@@ -1,10 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 import { LogOut, Users } from "lucide-react";
-import { currentUser, groups } from "@/app/data/mock";
+import { currentUser } from "@/app/data/mock";
+import { useGroups } from "@/app/context/GroupsContext";
 import PageHeader from "@/app/components/PageHeader";
 
 export default function ProfilePage() {
+  const { groups } = useGroups();
   const userGroups = groups.filter((g) =>
     g.memberIds.includes(currentUser.id)
   );

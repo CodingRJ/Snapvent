@@ -18,13 +18,21 @@ export default function PhotoGrid({ photos, groupId }) {
           href={`/groups/${groupId}/photos/${photo.id}`}
           className="relative aspect-square overflow-hidden"
         >
-          <Image
-            src={photo.imageUrl}
-            alt=""
-            fill
-            className="object-cover transition-transform hover:scale-105"
-            sizes="(max-width: 430px) 33vw, 143px"
-          />
+          {photo.imageUrl.startsWith("data:") ? (
+            <img
+              src={photo.imageUrl}
+              alt=""
+              className="h-full w-full object-cover transition-transform hover:scale-105"
+            />
+          ) : (
+            <Image
+              src={photo.imageUrl}
+              alt=""
+              fill
+              className="object-cover transition-transform hover:scale-105"
+              sizes="(max-width: 430px) 33vw, 143px"
+            />
+          )}
         </Link>
       ))}
     </div>

@@ -1,9 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import { Camera, Plus, Search } from "lucide-react";
-import { groups } from "@/app/data/mock";
+import { useGroups } from "@/app/context/GroupsContext";
 import GroupCard from "@/app/components/GroupCard";
 
 export default function HomePage() {
+  const { groups } = useGroups();
+
   return (
     <div>
       {/* Header */}

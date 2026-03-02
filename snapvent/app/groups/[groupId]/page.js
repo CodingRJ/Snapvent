@@ -1,16 +1,29 @@
+"use client";
+
+import { use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Upload } from "lucide-react";
-import { getGroupById, getPhotosByGroup } from "@/app/data/mock";
+import { useGroups } from "@/app/context/GroupsContext";
 import PageHeader from "@/app/components/PageHeader";
 import PhotoGrid from "@/app/components/PhotoGrid";
-import { notFound } from "next/navigation";
 
-export default async function GalleryPage({ params }) {
-  const { groupId } = await params;
+export default function GalleryPage({ params }) {
+  const { groupId } = use(params);
+  const { getGroupById, getPhotosByGroup } = useGroups();
+
   const group = getGroupById(groupId);
 
-  if (!group) notFound();
+  if (!group) {
+    return (
+      <div>
+        <PageHeader title="Nicht gefunden" backHref="/" />
+        <div className="p-8 text-center text-muted">
+          Gruppe nicht gefunden.
+        </div>
+      </div>
+    );
+  }
 
   const photos = getPhotosByGroup(groupId);
 

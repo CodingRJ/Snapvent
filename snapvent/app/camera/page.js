@@ -1,10 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Camera, Circle, Check } from "lucide-react";
-import { groups } from "@/app/data/mock";
+import { useGroups } from "@/app/context/GroupsContext";
 
 export default function CameraPage() {
+  const router = useRouter();
+  const { groups, addPhoto } = useGroups();
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [stream, setStream] = useState(null);
@@ -43,9 +46,17 @@ export default function CameraPage() {
     canvas.height = video.videoHeight;
     canvas.getContext("2d").drawImage(video, 0, 0);
 
-    // Simulated upload
+    // Get the captured image as a data URL
+    const imageUrl = canvas.toDataURL("image/jpeg", 0.8);
+
+    // Add photo to the in-memory store
+    addPhoto({ groupId: selectedGroup, imageUrl });
+
     setCaptured(true);
-    setTimeout(() => setCaptured(false), 2000);
+    setTimeout(() => {
+      setCaptured(false);
+      router.push(`/groups/${selectedGroup}`);
+    }, 1200);
   }
 
   if (error) {
