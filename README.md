@@ -1,4 +1,5 @@
-# Snapvent
-Website Snapvent
+# Snapvent Dokumentation
+M245 Guppen Projekt
+Robin Küttel, Remo Ambauen, Roguel Jove, Alissa Villiger, Katy Graf, Lukas Hübscher
 
-Chicken :3
+## This is a place to document each development steps within the repository itself, so no external Word document has to exist.
