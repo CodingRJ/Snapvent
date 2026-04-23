@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+tinydb
+python-multipart
+pydantic
+pydantic-settings

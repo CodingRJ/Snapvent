@@ -1,20 +1,12 @@
 # Snapvent backend
-
 This backend uses FastAPI for the HTTP API and TinyDB as the embedded JSON database.
 
-## Requirements
+## Setup Python venv
 
-- Python 3.8+ (project contains .pyc files for Python 3.11 but any modern Python 3 should work).
-- PowerShell (Windows) or a POSIX shell for the commands below.
-
-## Main libraries used
-
-- `fastapi` — web framework for the API
-- `uvicorn` — ASGI server to run the FastAPI app
-- `tinydb` — lightweight JSON database used by the project
-- `python-multipart` — (optional) required if the API accepts file uploads via form data
-
-## Install dependencies (Windows PowerShell)
+```powershell
+// Move to the root folder
+cd c:\Users\ambauer1\Documents\Snapvent\
+```
 
 1. From the `backend` folder create and activate a virtual environment:
 
@@ -22,21 +14,29 @@ This backend uses FastAPI for the HTTP API and TinyDB as the embedded JSON datab
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 ```
+## Install dependencies
 
 2. Install the required packages:
 
 ```powershell
-pip install fastapi "uvicorn[standard]" tinydb python-multipart
+pip install -r .\backend\requirements.txt
 ```
+
+## Configuration
+
+1. Create a `.env` file in the `backend/` directory.
+2. Add the following required variables:
+   ```env
+   SECRET_KEY="your_secret_key"
+   ALGORITHM="HS256"
+   ACCESS_TOKEN_EXPIRE_MINUTES=30
+   DB_PATH="snapvent_db.json"
 
 ## Start the backend
 
 Run the FastAPI app with Uvicorn from the `backend` directory:
 
 ```powershell
-// Move to the root folder
-cd c:\Users\ambauer1\Documents\Snapvent\
-
 // Activate venv if not already done
 .\.venv\Scripts\Activate.ps1
 

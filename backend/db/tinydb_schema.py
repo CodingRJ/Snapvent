@@ -11,10 +11,14 @@ from tinydb import TinyDB, Query, where
 import uuid
 from datetime import datetime
 from typing import Optional
+from ..config import get_settings
 
-DB_PATH = "snapvent_db.json"
+settings = get_settings()
+
+DB_PATH = settings.DB_PATH
 
 db = TinyDB(DB_PATH)
+sessions = db.table("sessions")
 users = db.table("users")
 groups = db.table("groups")
 group_members = db.table("group_members")
@@ -28,6 +32,18 @@ def _now_iso():
 
 def _new_uuid():
     return str(uuid.uuid4())
+
+# -- Sessions ----------------------------------------------------------------
+def create_session(user_id: str) -> str:
+    """Creates a session record in the database."""
+    session_id = _new_uuid()
+    session = {
+        "session_id": session_id,
+        "user_id": user_id,
+        "created_at": _now_iso()
+    }
+    sessions.insert(session)
+    return session_id
 
 # -- Users ------------------------------------------------------------------
 def create_user(username: str, user_email: str, profile_image_url: Optional[str] = None,
