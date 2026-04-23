@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body
 from pydantic import BaseModel
+
+from backend.service.auth_service import create_access_token
 from ..db import tinydb_schema as db
 
 router = APIRouter()
@@ -12,6 +14,10 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     username: str
     password: str
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
 @router.post("/register")
 def register(payload: RegisterIn = Body(...)):

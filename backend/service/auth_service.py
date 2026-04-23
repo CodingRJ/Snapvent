@@ -7,10 +7,6 @@ from ..config import get_settings
 
 settings = get_settings()
 
-class Token(BaseModel):
-    access_token: str
-    token_type: str
-
 def create_access_token(data: dict):
     """Generates a JWT access token."""
     to_encode = data.copy()
