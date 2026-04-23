@@ -15,7 +15,7 @@ from ..config import get_settings
 
 settings = get_settings()
 
-DB_PATH = settings.DB_PATH
+DB_PATH = settings.db_path
 
 db = TinyDB(DB_PATH)
 sessions = db.table("sessions")

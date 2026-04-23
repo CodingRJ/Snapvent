@@ -4,3 +4,5 @@ tinydb
 python-multipart
 pydantic
 pydantic-settings
+jwt
+passlib[bcrypt]

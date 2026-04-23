@@ -25,7 +25,14 @@ def register(payload: RegisterIn = Body(...)):
         user = db.create_user(payload.username, payload.email, payload.password)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    return {"message": "User created", "user_id": user["user_id"]}
+    
+    # Session Management: Create a database record of the session
+    db.create_session(user["user_id"]) 
+    
+    # JWT Logic: Create the token
+    access_token = create_access_token(data={"username": user["user_id"].username, "email": user["user_id"].user_email, "user_id": user["user_id"].user_id})
+
+    return {"user_id": user["user_id"], "access_token": access_token, "token_type": "bearer"}
 
 @router.post("/login", response_model=Token)
 def login(payload: LoginIn = Body(...)):
@@ -38,6 +45,6 @@ def login(payload: LoginIn = Body(...)):
     db.create_session(user["user_id"]) 
     
     # JWT Logic: Create the token
-    access_token = create_access_token(data={"sub": user["user_id"]})
+    access_token = create_access_token(data={"username": user["user_id"].username, "email": user["user_id"].user_email, "user_id": user["user_id"].user_id})
     
     return {"access_token": access_token, "token_type": "bearer"}
