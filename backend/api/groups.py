@@ -14,7 +14,6 @@ class JoinGroupIn(BaseModel):
     
 
 # -- Groups ----------------------------------------------------------------
-
 @router.post("")
 def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and_get_user_id)):
     try:
