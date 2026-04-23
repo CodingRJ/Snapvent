@@ -46,26 +46,26 @@ def create_session(user_id: str) -> str:
     return session_id
 
 # -- Users ------------------------------------------------------------------
-def create_user(username: str, user_email: str, profile_image_url: Optional[str] = None,
-                is_premium: bool = False, premium_expires_at: Optional[str] = None) -> dict:
-    """Create a user and enforce unique email (and username if needed).
+def create_user(username: str, user_email: str, password_hash: str, salt: str) -> dict:
+    """Create a user and enforce a unique email (and username if needed).
     Returns the created user dict.
     Raises ValueError on uniqueness or validation errors.
     """
-    # uniqueness checks
     if users.contains(Q.user_email == user_email):
-        raise ValueError(f"user_email already exists: {user_email}")
+        raise ValueError(f"Email already exists")
     if users.contains(Q.username == username):
-        raise ValueError(f"username already exists: {username}")
+        raise ValueError(f"Username already exists")
 
     user = {
         "user_id": _new_uuid(),
         "username": username,
         "user_email": user_email,
-        "profile_image_url": profile_image_url,
+        "password_hash": password_hash,
+        "salt": salt,
+        "profile_image_url": None,
         "storage_used": 0,
-        "is_premium": bool(is_premium),
-        "premium_expires_at": premium_expires_at,
+        "is_premium": False,
+        "premium_expires_at": None,
         "created_at": _now_iso(),
     }
     users.insert(user)
@@ -73,6 +73,9 @@ def create_user(username: str, user_email: str, profile_image_url: Optional[str]
 
 def get_user_by_id(user_id: str) -> Optional[dict]:
     return users.get(Q.user_id == user_id)
+
+def get_user_by_username(username: str) -> Optional[dict]:
+    return users.get(Q.username == username)
 
 # -- Groups -----------------------------------------------------------------
 def create_group(organizer_id: str, name: str, description: Optional[str] = None,
