@@ -34,9 +34,14 @@ pip install fastapi "uvicorn[standard]" tinydb python-multipart
 Run the FastAPI app with Uvicorn from the `backend` directory:
 
 ```powershell
-cd c:\Users\ambauer1\Documents\Snapvent\backend
+// Move to the root folder
+cd c:\Users\ambauer1\Documents\Snapvent\
+
+// Activate venv if not already done
 .\.venv\Scripts\Activate.ps1
-uvicorn api.main:app --reload --host 127.0.0.1 --port 8000
+
+// Install uvicorn
+uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 - The `--reload` flag enables auto-reload during development.
