@@ -30,7 +30,11 @@ def register(payload: RegisterIn = Body(...)):
     db.create_session(user["user_id"]) 
     
     # JWT Logic: Create the token
-    access_token = create_access_token(data={"username": user["user_id"].username, "email": user["user_id"].user_email, "user_id": user["user_id"].user_id})
+    access_token = create_access_token(data={
+    "username": user["username"], 
+    "email": user["user_email"], 
+    "user_id": user["user_id"]
+    })
 
     return {"user_id": user["user_id"], "access_token": access_token, "token_type": "bearer"}
 
@@ -45,6 +49,10 @@ def login(payload: LoginIn = Body(...)):
     db.create_session(user["user_id"]) 
     
     # JWT Logic: Create the token
-    access_token = create_access_token(data={"username": user["user_id"].username, "email": user["user_id"].user_email, "user_id": user["user_id"].user_id})
+    access_token = create_access_token(data={
+    "username": user["username"], 
+    "email": user["user_email"], 
+    "user_id": user["user_id"]
+    })
     
     return {"access_token": access_token, "token_type": "bearer"}
