@@ -1,8 +1,5 @@
 import jwt
 from datetime import datetime, timedelta
-from fastapi import APIRouter, HTTPException, Body
-from pydantic import BaseModel
-from ..db import tinydb_schema as db
 from ..config import get_settings
 from passlib.context import CryptContext
 
