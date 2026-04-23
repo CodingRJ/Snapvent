@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException, Header, Body
+from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional
 from ..db import tinydb_schema as db
-
+from backend.service.auth_service import verify_token_and_get_user_id, verify_token
 router = APIRouter()
 
 class CreateGroupIn(BaseModel):
@@ -11,42 +11,34 @@ class CreateGroupIn(BaseModel):
 
 class JoinGroupIn(BaseModel):
     invite_code: str
+    
+
+# -- Groups ----------------------------------------------------------------
 
 @router.post("")
-def create_group(payload: CreateGroupIn, x_token: Optional[str] = Header(None)):
-    user = db.get_user_by_token(x_token) if x_token else None
-    if not user:
-        raise HTTPException(status_code=401, detail="authentication required")
+def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and_get_user_id)):
     try:
-        g = db.create_group(user["user_id"], payload.name, payload.description)
+        g = db.create_group(user_id, payload.name, payload.description)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"group_id": g["group_id"], "owner_id": g["organizer_id"]}
 
 @router.get("")
-def list_groups(x_token: Optional[str] = Header(None)):
-    user = db.get_user_by_token(x_token) if x_token else None
-    if not user:
-        raise HTTPException(status_code=401, detail="authentication required")
-    groups = db.list_user_groups(user["user_id"])
-    return [{"id": g["group_id"], "name": g["name"]} for g in groups]
+def list_groups(user_id: str = Depends(verify_token_and_get_user_id)):
+    memberships = db.group_members.search(db.Q.user_id == user_id)
+    return [{"group_id": m["group_id"], "role": m["role"]} for m in memberships]
+
 
 @router.delete("/{group_id}")
-def delete_group(group_id: str, x_token: Optional[str] = Header(None)):
-    user = db.get_user_by_token(x_token) if x_token else None
-    if not user:
-        raise HTTPException(status_code=401, detail="authentication required")
+def delete_group(group_id: str, user_id: str = Depends(verify_token_and_get_user_id)):
     try:
-        db.delete_group(group_id, user["user_id"])
+        db.delete_group(group_id, user_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     return {"message": "Deleted"}
 
 @router.get("/{group_id}/qr-data")
-def qr_data(group_id: str, x_token: Optional[str] = Header(None)):
-    user = db.get_user_by_token(x_token) if x_token else None
-    if not user:
-        raise HTTPException(status_code=401, detail="authentication required")
+def qr_data(group_id: str, _ = Depends(verify_token)):
     g = db.get_group_by_id(group_id)
     if not g:
         raise HTTPException(status_code=404, detail="group not found")
@@ -60,16 +52,13 @@ def join_group(payload: JoinGroupIn):
     # anonymous join is allowed if user provides token header; require it
     return {"group_id": g["group_id"], "status": "ok"}
 
-@router.delete("/{group_id}/members/{user_id}")
-def remove_member(group_id: str, user_id: str, x_token: Optional[str] = Header(None)):
-    user = db.get_user_by_token(x_token) if x_token else None
-    if not user:
-        raise HTTPException(status_code=401, detail="authentication required")
+@router.delete("/{group_id}/members/{member_id}")
+def remove_member(group_id: str, member_id: str, user_id: str = Depends(verify_token_and_get_user_id)):
     # only organizer can remove
     g = db.get_group_by_id(group_id)
     if not g:
         raise HTTPException(status_code=404, detail="group not found")
-    if g["organizer_id"] != user["user_id"]:
+    if g["organizer_id"] != user_id:
         raise HTTPException(status_code=403, detail="only organizer may remove members")
-    db.remove_member(group_id, user_id)
+    db.remove_member(group_id, member_id)
     return {"message": "Member removed"}
