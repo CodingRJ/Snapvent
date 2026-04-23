@@ -46,7 +46,7 @@ def create_session(user_id: str) -> str:
     return session_id
 
 # -- Users ------------------------------------------------------------------
-def create_user(username: str, user_email: str, password_hash: str, salt: str) -> dict:
+def create_user(username: str, user_email: str, password_hash: str) -> dict:
     """Create a user and enforce a unique email (and username if needed).
     Returns the created user dict.
     Raises ValueError on uniqueness or validation errors.
@@ -61,7 +61,6 @@ def create_user(username: str, user_email: str, password_hash: str, salt: str) -
         "username": username,
         "user_email": user_email,
         "password_hash": password_hash,
-        "salt": salt,
         "profile_image_url": None,
         "storage_used": 0,
         "is_premium": False,
