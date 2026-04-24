@@ -13,6 +13,18 @@ from datetime import datetime
 from typing import Optional
 from ..config import get_settings
 
+class DatabaseError(Exception):
+    """Base class for database exceptions."""
+    pass
+
+class ResourceNotFoundError(DatabaseError):
+    """Raised when a requested resource does not exist."""
+    pass
+
+class PermissionDeniedError(DatabaseError):
+    """Raised when a user lacks permission for an action."""
+    pass
+
 settings = get_settings()
 
 DB_PATH = settings.db_path
@@ -76,6 +88,22 @@ def get_user_by_id(user_id: str) -> Optional[dict]:
 def get_user_by_username(username: str) -> Optional[dict]:
     return users.get(Q.username == username)
 
+
+def list_user_groups(user_id: str):
+    """Returns all groups a user is a member of."""
+    memberships = group_members.search(Q.user_id == user_id)
+    if not memberships:
+        return []
+
+    roles_lookup = {m["group_id"]: m["role"] for m in memberships}
+
+    user_groups = groups.search(Q.group_id.one_of(list(roles_lookup.keys())))
+
+    for group in user_groups:
+        group["role"] = roles_lookup.get(group["group_id"])
+
+    return user_groups
+
 # -- Groups -----------------------------------------------------------------
 def create_group(organizer_id: str, name: str, description: Optional[str] = None,
                  join_code: Optional[str] = None) -> dict:
@@ -83,7 +111,7 @@ def create_group(organizer_id: str, name: str, description: Optional[str] = None
     Organizer must exist.
     """
     if get_user_by_id(organizer_id) is None:
-        raise ValueError(f"organizer not found: {organizer_id}")
+        raise ResourceNotFoundError(f"organizer not found: {organizer_id}")
 
     if join_code is None:
         join_code = uuid.uuid4().hex[:8]
@@ -107,6 +135,43 @@ def create_group(organizer_id: str, name: str, description: Optional[str] = None
 def get_group_by_id(group_id: str) -> Optional[dict]:
     return groups.get(Q.group_id == group_id)
 
+def get_group_by_join_code(join_code: str) -> Optional[dict]:
+    """Find a group by its join code (for QR code joining)."""
+    return groups.get(Q.join_code == join_code)
+
+def delete_group(group_id: str, requesting_user_id: str) -> list[str]:
+    """
+    Deletes a group, all its members, and all its images.
+    Only the group creator can perform this action.
+    """
+    group = groups.get(Q.group_id == group_id)
+    if not group:
+        raise ResourceNotFoundError("Group not found")
+
+    if group["organizer_id"] != requesting_user_id:
+        raise PermissionDeniedError("Only the group creator can delete the group")
+
+    group_images = images.search(Q.group_id == group_id)
+    gcs_paths_to_delete = []
+    storage_to_refund = 0
+
+    for img in group_images:
+        gcs_paths_to_delete.append(img["gcs_path"])
+        if img.get("status") == "ready":
+            storage_to_refund += img.get("file_size_bytes", 0)
+
+    if storage_to_refund > 0:
+        owner = users.get(Q.user_id == requesting_user_id)
+        if owner:
+            new_total = max(0, owner.get("storage_used", 0) - storage_to_refund)
+            users.update({"storage_used": new_total}, Q.user_id == requesting_user_id)
+
+    images.remove(Q.group_id == group_id)
+    group_members.remove(Q.group_id == group_id)
+    groups.remove(Q.group_id == group_id)
+
+    return gcs_paths_to_delete
+
 # -- Group Members ----------------------------------------------------------
 VALID_ROLES = {"organizer", "member"}
 
@@ -117,9 +182,9 @@ def add_member(user_id: str, group_id: str, role: str = "member") -> dict:
     if role not in VALID_ROLES:
         raise ValueError(f"invalid role: {role}")
     if get_user_by_id(user_id) is None:
-        raise ValueError(f"user not found: {user_id}")
+        raise ResourceNotFoundError(f"user not found: {user_id}")
     if get_group_by_id(group_id) is None:
-        raise ValueError(f"group not found: {group_id}")
+        raise ResourceNotFoundError(f"group not found: {group_id}")
 
     existing = group_members.get((Q.user_id == user_id) & (Q.group_id == group_id))
     if existing:
@@ -138,31 +203,125 @@ def add_member(user_id: str, group_id: str, role: str = "member") -> dict:
 def list_group_members(group_id: str):
     return group_members.search(Q.group_id == group_id)
 
+
+def remove_member(group_id: str, member_to_remove_id: str, requesting_user_id: str):
+    """
+    Removes a member if the requester is the organizer OR
+    the member is removing themselves.
+    """
+    group = get_group_by_id(group_id)
+    if not group:
+        raise ResourceNotFoundError("Group not found")
+
+    requester_membership = group_members.get(
+        (Q.group_id == group_id) & (Q.user_id == requesting_user_id)
+    )
+    if not requester_membership:
+        raise PermissionDeniedError("You are not a member of this group")
+
+    is_creator = (group["organizer_id"] == requesting_user_id)
+    is_co_organizer = (requester_membership["role"] == "organizer")
+    is_self_removal = (member_to_remove_id == requesting_user_id)
+
+    if not (is_creator or is_co_organizer or is_self_removal):
+        raise PermissionDeniedError("Not authorized to remove this member")
+
+    if member_to_remove_id == group["organizer_id"]:
+        raise PermissionDeniedError("The group creator cannot be removed.")
+
+    group_members.remove((Q.group_id == group_id) & (Q.user_id == member_to_remove_id))
+
+def verify_membership(user_id: str, group_id: str):
+    if not group_members.contains((Q.user_id == user_id) & (Q.group_id == group_id)):
+        raise PermissionDeniedError("User is not a member of this group")
+
 # -- Images -----------------------------------------------------------------
-def add_image(group_id: str, uploader_id: str, image_url: str, file_size_bytes: int) -> dict:
+def add_image(group_id: str, uploader_id: str, image_url: str) -> dict:
     """Add an image. Ensures group and uploader exist and uploader is member of group.
     """
     if get_group_by_id(group_id) is None:
-        raise ValueError(f"group not found: {group_id}")
+        raise ResourceNotFoundError(f"group not found: {group_id}")
     if get_user_by_id(uploader_id) is None:
-        raise ValueError(f"uploader not found: {uploader_id}")
+        raise ResourceNotFoundError(f"uploader not found: {uploader_id}")
 
-    # optional: ensure uploader is a member of the group
     if not group_members.contains((Q.user_id == uploader_id) & (Q.group_id == group_id)):
-        raise ValueError("uploader is not a member of the group")
+        raise PermissionDeniedError("uploader is not a member of the group")
 
     image = {
         "image_id": _new_uuid(),
         "group_id": group_id,
         "uploader_id": uploader_id,
-        "image_url": image_url,
-        "file_size_bytes": int(file_size_bytes),
+        "gcs_path": image_url,
+        "file_size_bytes": 0,
+        "status": "pending",
         "created_at": _now_iso(),
     }
     images.insert(image)
-    # update uploader storage usage
-    users.update_increment("storage_used", file_size_bytes, Q.user_id == uploader_id)
     return image
+
+
+def confirm_image_upload(image_id: str, file_size_bytes: int):
+    """Called when Cloud Function confirms the file is in GCS."""
+    img = images.get(Q.image_id == image_id)
+    if not img:
+        raise ResourceNotFoundError(f"Image not found: {image_id}")
+
+    if img.get("status") == "ready":
+        return
+
+    images.update({
+        "status": "ready",
+        "file_size_bytes": int(file_size_bytes)
+    }, Q.image_id == image_id)
+
+    group = groups.get(Q.group_id == img["group_id"])
+    if group:
+        owner_id = group["organizer_id"]
+        owner = users.get(Q.user_id == owner_id)
+        if owner:
+            new_total = owner.get("storage_used", 0) + int(file_size_bytes)
+            users.update({"storage_used": new_total}, Q.user_id == owner_id)
+
+def get_images_by_group(group_id: str):
+    """Returns all images for a group that are 'ready'."""
+    return images.search((Q.group_id == group_id) & (Q.status == "ready"))
+
+def get_image_by_id(image_id: str):
+    return images.get(Q.image_id == image_id)
+
+def delete_image(image_id: str, requesting_user_id: str) -> str:
+    """
+    Deletes an image if the requester is the original uploader
+    OR the organizer of the group. Returns the gcs_path for cloud cleanup.
+    """
+    img = images.get(Q.image_id == image_id)
+    if not img:
+        raise ResourceNotFoundError(f"Image not found: {image_id}")
+
+    group = groups.get(Q.group_id == img["group_id"])
+    if not group:
+        raise ResourceNotFoundError("Associated group not found")
+
+    is_uploader = (img["uploader_id"] == requesting_user_id)
+    is_organizer = (group["organizer_id"] == requesting_user_id)
+
+    if not (is_uploader or is_organizer):
+        raise PermissionDeniedError("Not authorized to delete this picture")
+
+    if img.get("status") == "ready":
+        owner_id = group["organizer_id"]
+        owner = users.get(Q.user_id == owner_id)
+        if owner:
+            file_size = img.get("file_size_bytes", 0)
+            # Ensure storage never accidentally drops below zero
+            new_total = max(0, owner.get("storage_used", 0) - file_size)
+            users.update({"storage_used": new_total}, Q.user_id == owner_id)
+
+    gcs_path = img["gcs_path"]
+
+    images.remove(Q.image_id == image_id)
+
+    return gcs_path
 
 # -- Convenience / Introspection --------------------------------------------
 def reset_db():
@@ -185,9 +344,16 @@ if __name__ == "__main__":
     # Simple demo creating an organizer, group, member and image
     print("Demo init...\n")
     reset_db()
-    u = create_user("alice", "alice@example.com")
-    g = create_group(u["user_id"], "Hiking Club", "Group for weekend hikes")
-    bob = create_user("bob", "bob@example.com")
-    add_member(bob["user_id"], g["group_id"], role="member")
-    img = add_image(g["group_id"], bob["user_id"], "https://example.com/photo.jpg", 123456)
+
+    alice = create_user("alice", "alice@example.com", "hash123")
+    bob = create_user("bob", "bob@example.com", "hash456")
+
+    hiking_group = create_group(alice["user_id"], "Hiking Club", "Weekend hikes in Zug")
+    add_member(bob["user_id"], hiking_group["group_id"], role="member")
+
+    new_img = add_image(hiking_group["group_id"], bob["user_id"], "originals/mount-rigi.png")
+    print(f"Image created with status: {new_img['status']}")
+    confirm_image_upload(new_img["image_id"], 5242880)  # 5MB
+
+    print("\n--- Current DB State ---")
     print(dump_all())

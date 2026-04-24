@@ -10,8 +10,12 @@ class Settings(BaseSettings):
     # Database Settings
     db_path: str = "snapvent_db.json"
 
+    # Google Cloud Settings
+    gcs_bucket_name: str
+    gcs_thumbnail_bucket_name: str
+
     # Tell Pydantic to read from a .env file
-    model_config = SettingsConfigDict(env_file="backend/.env")
+    model_config = SettingsConfigDict(env_file="backend/.env", extra="ignore")
 
 @lru_cache()
 def get_settings():

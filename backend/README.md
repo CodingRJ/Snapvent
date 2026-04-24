@@ -27,10 +27,22 @@ pip install -r .\backend\requirements.txt
 1. Create a `.env` file in the `backend/` directory.
 2. Add the following required variables:
    ```env
+   # -- Security --
    SECRET_KEY="your_secret_key"
    ALGORITHM="HS256"
    ACCESS_TOKEN_EXPIRE_MINUTES=30
+   
+   # -- Database --
    DB_PATH="snapvent_db.json"
+   
+   # -- Google Cloud Storage --
+   GCS_BUCKET_NAME="m245-snapvent"
+   GCS_THUMBNAIL_BUCKET_NAME="m245-snapvent-thumbnails"
+   
+   # IMPORTANT: Use the ABSOLUTE path to your JSON key file. 
+   # Do NOT put the key file inside this Git repository!
+   GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your/gcp-service-account-key.json"
+   ```
 
 ## Start the backend
 
@@ -41,7 +53,7 @@ Run the FastAPI app with Uvicorn from the `backend` directory:
 .\.venv\Scripts\Activate.ps1
 
 // Install uvicorn
-uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000 --env-file backend/.env
 ```
 
 - The `--reload` flag enables auto-reload during development.

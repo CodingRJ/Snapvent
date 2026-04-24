@@ -5,22 +5,22 @@ Handles user onboarding and session management.
 
 | Method | Endpoint             | Description       | Request Body                                               | Success Response (200/201)    |
 | :----- | :------------------- | :---------------- | :--------------------------------------------------------- | :---------------------------- |
-| `POST` | `/api/auth/register` | Create new user   | `{"username": "str", "email": "str", "password": "str"}` | `{"message": "User created"}` |
-| `POST` | `/api/auth/login`    | User login        | `{"username": "str", "password": "str"}`                 | `{"token": "TOKEN_String"}`   |
+| `POST` | `/api/auth/register` | Create new user   | `{"username": "str", "email": "str", "password": "str"}` | `{"user_id": "uuid", "access_token": "JWT", "token_type": "bearer"}` |
+| `POST` | `/api/auth/login`    | User login        | `{"username": "str", "password": "str"}`                 | `{"access_token": "JWT", "token_type": "bearer"}`   |
 
 ---
 
 ## 2. Group Management
 Handles group creation, membership, and QR code invites.
 
-| Method   | Endpoint                             | Description                  | Request Body                 | Success Response (200)                     |
-| :------- | :----------------------------------- | :--------------------------- | :--------------------------- | :----------------------------------------- |
-| `POST`   | `/api/groups`                        | Create a group               | `{"name": "Group Name"}`     | `{"group_id": "uuid", "owner_id": "uuid"}` |
-| `GET`    | `/api/groups`                        | List user's groups           | N/A                          | `[{"id": "uuid", "name": "str"}]`          |
-| `DELETE` | `/api/groups/{id}`                   | Delete a group (only owner)  | N/A                          | `{"message": "Deleted"}`                   |
-| `GET`    | `/api/groups/{id}/qr-data`           | Get join-token for QR        | N/A                          | `{"invite_code": "ABC-123"}`               |
-| `POST`   | `/api/groups/join`                   | Join via QR scan             | `{"invite_code": "ABC-123"}` | `{"group_id": "uuid", "status": "joined"}` |
-| `DELETE` | `/api/groups/{id}/members/{user_id}` | Remove member                | N/A                          | `{"message": "Member removed"}`            |
+| Method   | Endpoint                             | Description                  | Request Body                 | Success Response (200)                                                                       |
+| :------- | :----------------------------------- | :--------------------------- | :--------------------------- |:---------------------------------------------------------------------------------------------|
+| `POST`   | `/api/groups`                        | Create a group               | `{"name": "str", "description": "str (optional)"}`     | `{"group_id": "uuid", "owner_id": "uuid"}`                                                   |
+| `GET`    | `/api/groups`                        | List user's groups           | N/A                          | `[{"group_id": "uuid", "organizer_id": "uuid", "name": "str", "description": "str", "join_code": "str", "created_at": "ISO-8601", "role": "organizer/member"}]` |
+| `DELETE` | `/api/groups/{id}`                   | Delete a group (only owner)  | N/A                          | `{"message": "Deleted"}`                                                                     |
+| `GET`    | `/api/groups/{id}/qr-data`           | Get join-token for QR        | N/A                          | `{"invite_code": "ABC-123"}`                                                                 |
+| `POST`   | `/api/groups/join`                   | Join via QR scan             | `{"invite_code": "ABC-123"}` | `{"group_id": "uuid", "status": "ok"}`                                                       |
+| `DELETE` | `/api/groups/{id}/members/{user_id}` | Remove member                | N/A                          | `{"message": "Member removed"}`                                                              |
 
 ---
 
@@ -28,10 +28,10 @@ Handles group creation, membership, and QR code invites.
 Handles S3 upload URLs and retrieval of thumbnails vs full images.
 
 | Method   | Endpoint                      | Description                                     | Request Body              | Success Response (200)                                        |
-| :------- | :---------------------------- | :---------------------------------------------- | :------------------------ | :------------------------------------------------------------ |
-| `POST`   | `/api/groups/{id}/pictures`   | Get S3 Upload URL                               | `{"filename": "img.jpg"}` | `{"upload_url": "s3...", "picture_id": "uuid"}`               |
-| `GET`    | `/api/groups/{id}/thumbnails` | Get all group thumbs                            | N/A                       | `[{"id": "uuid", "thumb_url": "s3..."}]`                      |
-| `GET`    | `/api/pictures/{id}`          | Get full-res metadata                           | N/A                       | `{"id": "uuid", "full_url": "s3...", "uploader": "username"}` |
+| :------- | :---------------------------- |:------------------------------------------------| :------------------------ | :------------------------------------------------------------ |
+| `POST`   | `/api/groups/{id}/pictures`   | Get GCS Upload URL                              | `{"content_type": "image/jpeg"}` | `{"upload_url": "https://storage...", "picture_id": "uuid"}`               |
+| `GET`    | `/api/groups/{id}/thumbnails` | Get all group thumbs                            | N/A                       | `[{"id": "uuid", "thumb_url": "https://storage..."}]`                      |
+| `GET`    | `/api/pictures/{id}`          | Get full-res metadata                           | N/A                       | `{"id": "uuid", "full_url": "https://storage...", "uploader": "username"}` |
 | `DELETE` | `/api/pictures/{id}`          | Delete a picture (only group owner and creator) | N/A                       | `{"message": "Deleted"}`                                      |
 
 
