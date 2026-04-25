@@ -289,6 +289,10 @@ def get_images_by_group(group_id: str):
 def get_image_by_id(image_id: str):
     return images.get(Q.image_id == image_id)
 
+def get_image_by_gcs_path(gcs_path: str):
+    """Finds an image using its Google Cloud Storage path."""
+    return images.get(Q.gcs_path == gcs_path)
+
 def delete_image(image_id: str, requesting_user_id: str) -> str:
     """
     Deletes an image if the requester is the original uploader

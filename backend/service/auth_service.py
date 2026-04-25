@@ -1,11 +1,13 @@
 import jwt
-from fastapi import HTTPException, Header
+from fastapi import HTTPException, Header, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime, timedelta
 from ..config import get_settings
 from passlib.context import CryptContext
 
 settings = get_settings()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+security = HTTPBearer()
 
 def hash_password(password: str) -> str:
     """Returns a bcrypt hashed string (includes salt)."""
@@ -43,18 +45,18 @@ def verify_access_token(token: str) -> dict:
 
 # -- FastAPI Dependency Helpers ------------------------------------------------
 
-def verify_token(x_token: str = Header(...)):
+def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Simply verifies the token exists and is valid."""
     try:
-        verify_access_token(x_token)
+        verify_access_token(credentials.credentials)
         return True
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
         raise HTTPException(status_code=401, detail=str(e))
 
-def verify_token_and_get_user_id(x_token: str = Header(...)) -> str:
+def verify_token_and_get_user_id(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     """FastAPI Dependency: Converts logic errors into HTTP 401s."""
     try:
-        payload = verify_access_token(x_token)
+        payload = verify_access_token(credentials.credentials)
         return payload["user_id"]
     except (jwt.ExpiredSignatureError, jwt.InvalidTokenError) as e:
         raise HTTPException(status_code=401, detail=str(e))

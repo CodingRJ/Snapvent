@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     gcs_bucket_name: str
     gcs_thumbnail_bucket_name: str
 
+    # Webhook OIDC Settings
+    base_url: str
+    gcs_service_account_email: str
+
     # Tell Pydantic to read from a .env file
     model_config = SettingsConfigDict(env_file="backend/.env", extra="ignore")
 
