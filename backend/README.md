@@ -42,6 +42,10 @@ pip install -r .\backend\requirements.txt
    # IMPORTANT: Use the ABSOLUTE path to your JSON key file. 
    # Do NOT put the key file inside this Git repository!
    GOOGLE_APPLICATION_CREDENTIALS="/absolute/path/to/your/gcp-service-account-key.json"
+   
+   # -- Webhooks & Identity --
+   BASE_URL="http://127.0.0.1:8000"
+   GCS_SERVICE_ACCOUNT_EMAIL="email@email.com"
    ```
 
 ## Start the backend
@@ -52,7 +56,7 @@ Run the FastAPI app with Uvicorn from the `backend` directory:
 // Activate venv if not already done
 .\.venv\Scripts\Activate.ps1
 
-// Install uvicorn
+// Start the server
 uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000 --env-file backend/.env
 ```
 
