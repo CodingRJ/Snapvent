@@ -1,3 +1,6 @@
+"use client";
+
+import { SyntheticEvent, useState } from "react";
 import { Button } from "~/components/ui/button";
 import {
   Field,
@@ -6,30 +9,67 @@ import {
   FieldSet,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import { useAuth } from "~/context/AuthContext";
 
 export default function Login() {
+  const { login } = useAuth();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      await login(email, password);
+    } catch {
+      setError("Email oder Passwort falsch.");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="bg-primary h-screen flex justify-center items-center flex-col">
       <div className="max-w-xs flex flex-col gap-14s">
         <h1 className="font-bold text-primary-foreground text-5xl">
           Willkommen zu Snapvent
         </h1>
-        <div className="w-full">
-          <form>
+        <div className="w-full mt-6">
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <FieldSet>
                 <FieldGroup>
                   <Field>
                     <FieldLegend>Email</FieldLegend>
-                    <Input type="email" required />
+                    <Input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </Field>
                   <Field>
                     <FieldLegend>Password</FieldLegend>
-                    <Input type="password" required />
+                    <Input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
                   </Field>
+                  {error && <p className="text-sm text-red-300">{error}</p>}
                   <Field>
-                    <Button type="submit" variant="outline" size="lg">
-                      Login
+                    <Button
+                      type="submit"
+                      className="text-primary hover:text-primary font-bold"
+                      variant="outline"
+                      size="lg"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Laden..." : "Login"}
                     </Button>
                   </Field>
                 </FieldGroup>
