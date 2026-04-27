@@ -1,6 +1,6 @@
 from google.cloud import storage
 from datetime import timedelta
-from ..config import get_settings
+from config import get_settings
 from typing import Optional
 
 settings = get_settings()

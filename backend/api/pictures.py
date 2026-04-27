@@ -1,10 +1,10 @@
 from datetime import datetime
 from fastapi import APIRouter, HTTPException, Depends, Body
 from pydantic import BaseModel
-from ..db import tinydb_schema as db
-from ..service.auth_service import verify_token_and_get_user_id
-from ..service import gcs_service
-from ..config import get_settings
+from db import tinydb_schema as db
+from service.auth_service import verify_token_and_get_user_id
+from service import gcs_service
+from config import get_settings
 settings = get_settings()
 
 router = APIRouter()

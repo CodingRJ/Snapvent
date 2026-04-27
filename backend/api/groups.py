@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, Header
 from pydantic import BaseModel
 from typing import Optional
-from ..db import tinydb_schema as db
-from backend.service.auth_service import verify_token_and_get_user_id, verify_token
-from ..service import gcs_service
-from ..config import get_settings
+from db import tinydb_schema as db
+from service.auth_service import verify_token_and_get_user_id, verify_token
+from service import gcs_service
+from config import get_settings
 
 settings = get_settings()
 router = APIRouter()

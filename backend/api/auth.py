@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Body, Header
 from pydantic import BaseModel
-from backend.service.auth_service import create_access_token, hash_password, verify_password
-from ..db import tinydb_schema as db
+from service.auth_service import create_access_token, hash_password, verify_password
+from db import tinydb_schema as db
 
 router = APIRouter()
 

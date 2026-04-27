@@ -1,10 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .auth import router as auth_router
-from .groups import router as groups_router
-from .pictures import router as pictures_router
-from .webhooks import router as webhooks_router
+from api.auth import router as auth_router
+from api.groups import router as groups_router
+from api.pictures import router as pictures_router
+from api.webhooks import router as webhooks_router
 
 app = FastAPI(title="Snapvent API")
 

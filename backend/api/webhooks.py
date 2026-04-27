@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
-from ..db import tinydb_schema as db
-from ..config import get_settings
+from db import tinydb_schema as db
+from config import get_settings
 
 
 settings = get_settings()

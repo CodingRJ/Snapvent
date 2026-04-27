@@ -1,0 +1,8 @@
+services:
+  api:
+    image: snapvenetbackent
+    ports:
+      - 8000:8000
+    volumes:
+      - ./auth:/auth
+      - ./database:/db
