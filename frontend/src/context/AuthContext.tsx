@@ -19,6 +19,7 @@ interface AuthContextType {
   user: AuthUser | null;
   access_token: string | null;
   login: (username: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => void;
   logout: () => void;
   isLoading: boolean;
 }
@@ -75,7 +76,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
 
   async function login(username: string, password: string) {
-    const res = await fetch("https://api2.snapvent.ch/api/auth/login", {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -90,6 +91,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push("/");
   }
 
+  function loginWithToken(token: string) {
+    setCookie(token);
+    setAuth({ user: decodeJwt(token), access_token: token, isLoading: false });
+    router.push("/");
+  }
+
   function logout() {
     deleteCookie();
     setAuth({ user: null, access_token: null, isLoading: false });
@@ -98,7 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, access_token, login, logout, isLoading }}
+      value={{ user, access_token, login, loginWithToken, logout, isLoading }}
     >
       {children}
     </AuthContext.Provider>

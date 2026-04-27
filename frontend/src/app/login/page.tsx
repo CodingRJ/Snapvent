@@ -13,7 +13,7 @@ import { useAuth } from "~/context/AuthContext";
 
 export default function Login() {
   const { login } = useAuth();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -23,9 +23,9 @@ export default function Login() {
     setError(null);
     setIsLoading(true);
     try {
-      await login(email, password);
+      await login(username, password);
     } catch {
-      setError("Email oder Passwort falsch.");
+      setError("Benutzername oder Passwort falsch.");
     } finally {
       setIsLoading(false);
     }
@@ -43,12 +43,12 @@ export default function Login() {
               <FieldSet>
                 <FieldGroup>
                   <Field>
-                    <FieldLegend>Email</FieldLegend>
+                    <FieldLegend>Benutzername</FieldLegend>
                     <Input
-                      type="email"
+                      type="text"
                       required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
                     />
                   </Field>
                   <Field>

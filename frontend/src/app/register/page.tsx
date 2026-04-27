@@ -1,4 +1,8 @@
+"use client";
+
+import { SyntheticEvent, useState } from "react";
 import { Button } from "~/components/ui/button";
+import { useAuth } from "~/context/AuthContext";
 import {
   Field,
   FieldGroup,
@@ -8,6 +12,43 @@ import {
 import { Input } from "~/components/ui/input";
 
 export default function Register() {
+  const { loginWithToken } = useAuth();
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, email, password }),
+        },
+      );
+
+      const data = await res.json().catch(() => null);
+
+      if (!res.ok) {
+        throw new Error(data?.detail ?? "Registrierung fehlgeschlagen");
+      }
+
+      loginWithToken(data.access_token);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Registrierung fehlgeschlagen",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="bg-primary h-screen flex justify-center items-center flex-col">
       <div className="max-w-xs flex flex-col gap-14s">
@@ -15,25 +56,47 @@ export default function Register() {
           Erstelle einen Nutzer
         </h1>
         <div className="w-full mt-6">
-          <form>
+          <form onSubmit={handleSubmit}>
             <FieldGroup>
               <FieldSet>
                 <FieldGroup>
                   <Field>
                     <FieldLegend>Email</FieldLegend>
-                    <Input type="email" required />
+                    <Input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
                   </Field>
                   <Field>
                     <FieldLegend>Benutzer</FieldLegend>
-                    <Input type="text" required />
+                    <Input
+                      type="text"
+                      required
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                    />
                   </Field>
                   <Field>
                     <FieldLegend>Password</FieldLegend>
-                    <Input type="password" required />
+                    <Input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
                   </Field>
+                  {error && <p className="text-sm text-red-300">{error}</p>}
                   <Field>
-                    <Button className="text-primary hover:text-primary font-bold" type="submit" variant="outline" size="lg">
-                      Anmelden
+                    <Button
+                      className="text-primary hover:text-primary font-bold"
+                      type="submit"
+                      variant="outline"
+                      size="lg"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Laden..." : "Registrieren"}
                     </Button>
                   </Field>
                 </FieldGroup>
