@@ -13,7 +13,7 @@ register_heif_opener()
 storage_client = storage.Client()
 
 THUMBNAIL_BUCKET_NAME = os.environ.get("THUMBNAIL_BUCKET_NAME", "m245-snapvent-thumbnails")
-BACKEND_URL = os.environ.get("BACKEND_URL", "https://snapvent.ch/api/webhooks/gcs")
+BACKEND_URL = os.environ.get("BACKEND_URL", "https://api2.snapvent.ch/api/webhooks/gcs")
 
 
 @functions_framework.cloud_event
