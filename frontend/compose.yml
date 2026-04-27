@@ -1,0 +1,7 @@
+services:
+  frontend:
+    image: snapvenetfrontend
+    ports:
+      - 3000:3000
+    environment:
+      - NEXT_PUBLIC_API_URL=api2.snapvent.ch/api
