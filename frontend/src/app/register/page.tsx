@@ -7,12 +7,12 @@ import {
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 
-export default function Login() {
+export default function Register() {
   return (
     <div className="bg-primary h-screen flex justify-center items-center flex-col">
       <div className="max-w-xs flex flex-col gap-14s">
         <h1 className="font-bold text-primary-foreground text-5xl">
-          Willkommen zu Snapvent
+          Erstelle einen Nutzer
         </h1>
         <div className="w-full mt-6">
           <form>
@@ -24,12 +24,16 @@ export default function Login() {
                     <Input type="email" required />
                   </Field>
                   <Field>
+                    <FieldLegend>Benutzer</FieldLegend>
+                    <Input type="text" required />
+                  </Field>
+                  <Field>
                     <FieldLegend>Password</FieldLegend>
                     <Input type="password" required />
                   </Field>
                   <Field>
                     <Button className="text-primary hover:text-primary font-bold" type="submit" variant="outline" size="lg">
-                      Login
+                      Anmelden
                     </Button>
                   </Field>
                 </FieldGroup>
@@ -37,12 +41,12 @@ export default function Login() {
             </FieldGroup>
           </form>
           <div className="text-sm text-primary-foreground mt-2">
-            Du hast noch keinen Account?{" "}
+            Du hast bereits einen Account?{" "}
             <a
-              href="/register"
+              href="/login"
               className="font-bold text-primary-foreground hover:underline"
             >
-              Erstelle jetzt einen!
+              Melde dich an!
             </a>
           </div>
         </div>
