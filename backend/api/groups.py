@@ -12,16 +12,21 @@ router = APIRouter()
 class CreateGroupIn(BaseModel):
     name: str
     description: Optional[str] = None
+    usernames: Optional[list[str]] = None
 
 class JoinGroupIn(BaseModel):
     invite_code: str
-    
 
 # -- Groups ----------------------------------------------------------------
 @router.post("")
 def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and_get_user_id)):
     try:
         g = db.create_group(user_id, payload.name, payload.description)
+        if payload.usernames:
+            for username in payload.usernames:
+                user = db.get_user_by_username(username)
+                if user:
+                    db.add_member(user["user_id"], g["group_id"], role="member")
         return {"group_id": g["group_id"], "owner_id": g["organizer_id"]}
     except db.ResourceNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
