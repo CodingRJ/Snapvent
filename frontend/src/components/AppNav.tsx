@@ -4,8 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Camera, Gem, Home, User, Users } from "lucide-react";
 import { useRef } from "react";
-import { useAuth } from "~/context/AuthContext";
-import { uploadGroupPhoto } from "~/services/groups.service";
+import { uploadGroupPhoto } from "~/services/groups.actions";
 
 const baseNavItems = [
   { href: "/", icon: Home, label: "Home" },
@@ -15,7 +14,6 @@ const baseNavItems = [
 
 export function AppNav() {
   const pathname = usePathname();
-  const { access_token } = useAuth();
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const groupMatch = pathname.match(/^\/groups\/([\w-]+)/);
@@ -23,9 +21,11 @@ export function AppNav() {
 
   const handleCameraChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !access_token || !groupId) return;
+    if (!file || !groupId) return;
     try {
-      await uploadGroupPhoto(access_token, groupId, file);
+      const fd = new FormData();
+      fd.append("file", file);
+      await uploadGroupPhoto(groupId, fd);
       window.dispatchEvent(new CustomEvent("snapvent:photo-uploaded"));
     } catch (err) {
       console.error("Camera upload error:", err);

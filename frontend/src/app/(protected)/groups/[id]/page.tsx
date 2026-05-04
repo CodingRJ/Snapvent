@@ -8,10 +8,10 @@ import { useAuth } from "~/context/AuthContext";
 import {
   fetchGroups,
   fetchGroupThumbnails,
-  uploadGroupPhoto,
   type Group,
   type Thumbnail,
 } from "~/services/groups.service";
+import { uploadGroupPhoto } from "~/services/groups.actions";
 import Image from "next/image";
 
 export default function GroupPage() {
@@ -67,7 +67,9 @@ export default function GroupPage() {
     if (!file || !access_token) return;
     setUploading(true);
     try {
-      await uploadGroupPhoto(access_token, id, file);
+      const fd = new FormData();
+      fd.append("file", file);
+      await uploadGroupPhoto(id, fd);
       await pollForNewThumbnail();
     } catch (err) {
       console.error("Upload error:", err);

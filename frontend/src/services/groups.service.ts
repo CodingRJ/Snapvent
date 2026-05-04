@@ -59,24 +59,3 @@ export async function fetchGroupThumbnails(
   return Array.isArray(data) ? data : [];
 }
 
-export async function uploadGroupPhoto(
-  token: string,
-  groupId: string,
-  file: File,
-): Promise<void> {
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("groupId", groupId);
-
-  const res = await fetch("/api/upload-proxy", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}` },
-    body: formData,
-  });
-
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    console.error("uploadGroupPhoto failed:", res.status, data);
-    throw new Error(data.error ?? "Foto konnte nicht hochgeladen werden");
-  }
-}
