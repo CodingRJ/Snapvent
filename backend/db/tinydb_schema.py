@@ -130,7 +130,7 @@ def create_group(organizer_id: str, name: str, description: Optional[str] = None
     }
     groups.insert(group)
     # add organizer to group_members as organizer
-    add_member(user_id=organizer_id, group_id=group["group_id"], role="organizer")
+    add_member(user_id=organizer_id, group_id=group["group_id"], role="group-admin")
     return group
 
 def get_group_by_id(group_id: str) -> Optional[dict]:
@@ -174,7 +174,7 @@ def delete_group(group_id: str, requesting_user_id: str) -> list[str]:
     return gcs_paths_to_delete
 
 # -- Group Members ----------------------------------------------------------
-VALID_ROLES = {"organizer", "member"}
+VALID_ROLES = {"group-admin", "member"}
 
 def add_member(user_id: str, group_id: str, role: str = "member") -> dict:
     """Add a user to a group. Enforces that user and group exist and role is valid.
@@ -221,7 +221,7 @@ def remove_member(group_id: str, member_to_remove_id: str, requesting_user_id: s
         raise PermissionDeniedError("You are not a member of this group")
 
     is_creator = (group["organizer_id"] == requesting_user_id)
-    is_co_organizer = (requester_membership["role"] == "organizer")
+    is_co_organizer = (requester_membership["role"] == "group-admin")
     is_self_removal = (member_to_remove_id == requesting_user_id)
 
     if not (is_creator or is_co_organizer or is_self_removal):
