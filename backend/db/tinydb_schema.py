@@ -125,6 +125,7 @@ def create_group(organizer_id: str, name: str, description: Optional[str] = None
         "name": name,
         "description": description,
         "join_code": join_code,
+        "group_image_url": "",
         "created_at": _now_iso(),
     }
     groups.insert(group)
@@ -276,6 +277,11 @@ def confirm_image_upload(image_id: str, file_size_bytes: int):
 
     group = groups.get(Q.group_id == img["group_id"])
     if group:
+        # If this is the first image in the group, use it as the group cover.
+        # Store the raw GCS object path (same format as images.gcs_path).
+        if not group.get("group_image_url"):
+            groups.update({"group_image_url": img["gcs_path"]}, Q.group_id == img["group_id"])
+
         owner_id = group["organizer_id"]
         owner = users.get(Q.user_id == owner_id)
         if owner:
