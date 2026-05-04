@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   MoreVertical,
   Plus,
@@ -39,6 +40,7 @@ import {
 
 export default function Home() {
   const { access_token } = useAuth();
+  const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
@@ -47,7 +49,12 @@ export default function Home() {
 
   useEffect(() => {
     if (!access_token) return;
-    fetchGroups(access_token).then(setGroups).catch(() => {});
+    fetchGroups(access_token)
+      .then((data) => {
+        console.log("Groups loaded:", data);
+        setGroups(data);
+      })
+      .catch((err) => console.error("fetchGroups failed:", err));
   }, [access_token]);
 
   const createGroup = async () => {
@@ -90,7 +97,8 @@ export default function Home() {
             {groups.map((group) => (
               <div
                 key={group.id}
-                className="flex items-center gap-3 border rounded-xl p-3"
+                className="flex items-center gap-3 border rounded-xl p-3 cursor-pointer"
+                onClick={() => router.push(`/groups/${group.id}`)}
               >
                 <div className="w-16 h-16 border rounded-lg shrink-0" />
                 <span className="flex-1 font-medium">{group.name}</span>

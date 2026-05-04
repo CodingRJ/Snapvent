@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Gem, Home, User } from "lucide-react";
+import { Camera, Gem, Home, User, Users } from "lucide-react";
+import { useRef } from "react";
+import { useAuth } from "~/context/AuthContext";
+import { uploadGroupPhoto } from "~/services/groups.service";
 
-const navItems = [
+const baseNavItems = [
   { href: "/", icon: Home, label: "Home" },
   { href: "/profile", icon: User, label: "Profil" },
   { href: "/premium", icon: Gem, label: "Premium" },
@@ -12,23 +15,74 @@ const navItems = [
 
 export function AppNav() {
   const pathname = usePathname();
+  const { access_token } = useAuth();
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+
+  const groupMatch = pathname.match(/^\/groups\/([\w-]+)/);
+  const groupId = groupMatch?.[1] ?? null;
+
+  const handleCameraChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !access_token || !groupId) return;
+    try {
+      await uploadGroupPhoto(access_token, groupId, file);
+      window.dispatchEvent(new CustomEvent("snapvent:photo-uploaded"));
+    } catch (err) {
+      console.error("Camera upload error:", err);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const mobileItems: Array<
+    | { type: "link"; href: string; icon: React.ElementType; label: string; active?: boolean }
+    | { type: "camera"; icon: React.ElementType; label: string }
+  > = groupId
+    ? [
+        { type: "link", href: "/", icon: Home, label: "Home" },
+        { type: "link", href: `/groups/${groupId}`, icon: Users, label: "Gruppe", active: true },
+        { type: "camera", icon: Camera, label: "Kamera" },
+        { type: "link", href: "/profile", icon: User, label: "Profil" },
+        { type: "link", href: "/premium", icon: Gem, label: "Premium" },
+      ]
+    : baseNavItems.map((item) => ({ type: "link" as const, ...item }));
 
   return (
     <>
       {/* Mobile: floating bottom pill */}
-      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-muted rounded-3xl flex items-center justify-around gap-10 h-14 px-4">
-        {navItems.map(({ href, icon: Icon, label }) => {
-          const active = pathname === href;
+      <nav className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-muted rounded-3xl flex items-center justify-around h-14 px-5 gap-6">
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          className="hidden"
+          onChange={handleCameraChange}
+        />
+        {mobileItems.map((item) => {
+          if (item.type === "camera") {
+            return (
+              <button
+                key="camera"
+                aria-label={item.label}
+                onClick={() => cameraInputRef.current?.click()}
+                className="flex items-center justify-center w-10 h-10 text-muted-foreground transition-colors"
+              >
+                <item.icon size={24} />
+              </button>
+            );
+          }
+          const active = item.active ?? pathname === item.href;
           return (
             <Link
-              key={href}
-              href={href}
-              aria-label={label}
+              key={item.href}
+              href={item.href}
+              aria-label={item.label}
               className={`flex items-center justify-center w-10 h-10 transition-colors ${
                 active ? "text-foreground" : "text-muted-foreground"
               }`}
             >
-              <Icon size={24} />
+              <item.icon size={24} />
             </Link>
           );
         })}
@@ -40,7 +94,7 @@ export function AppNav() {
           <span className="font-bold text-lg text-primary">Snapvent</span>
         </div>
         <nav className="flex flex-col gap-1 p-3 flex-1">
-          {navItems.map(({ href, icon: Icon, label }) => {
+          {baseNavItems.map(({ href, icon: Icon, label }) => {
             const active = pathname === href;
             return (
               <Link
