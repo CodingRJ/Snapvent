@@ -13,6 +13,13 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    rules: {
+      // Reading client-only storage (cookies) after mount requires useEffect + setState
+      // in Next.js SSR. The lazy initializer alternative causes hydration mismatches.
+      "react-hooks/set-state-in-effect": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 interface AuthUser {
@@ -54,26 +54,26 @@ function decodeJwt(token: string): AuthUser {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [{ user, access_token, isLoading }, setAuth] = useState<AuthState>(
-    () => {
-      if (typeof window === "undefined") {
-        return { user: null, access_token: null, isLoading: false };
-      }
-      const token = getCookie();
-      if (!token) return { user: null, access_token: null, isLoading: false };
-      try {
-        return {
-          user: decodeJwt(token),
-          access_token: token,
-          isLoading: false,
-        };
-      } catch {
-        deleteCookie();
-        return { user: null, access_token: null, isLoading: false };
-      }
-    },
-  );
+  const [{ user, access_token, isLoading }, setAuth] = useState<AuthState>({
+    user: null,
+    access_token: null,
+    isLoading: true,
+  });
   const router = useRouter();
+
+  useEffect(() => {
+    const token = getCookie();
+    if (!token) {
+      setAuth({ user: null, access_token: null, isLoading: false });
+      return;
+    }
+    try {
+      setAuth({ user: decodeJwt(token), access_token: token, isLoading: false });
+    } catch {
+      deleteCookie();
+      setAuth({ user: null, access_token: null, isLoading: false });
+    }
+  }, []);
 
   async function login(username: string, password: string) {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
