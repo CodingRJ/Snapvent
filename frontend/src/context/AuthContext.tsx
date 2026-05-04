@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginApi } from "~/services/auth.service";
 
 interface AuthUser {
   user_id: number;
@@ -76,16 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   async function login(username: string, password: string) {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password }),
-    });
-
-    if (!res.ok) throw new Error("Login fehlgeschlagen");
-
-    const data = await res.json();
-    const token: string = data.access_token;
+    const token = await loginApi(username, password);
     setCookie(token);
     setAuth({ user: decodeJwt(token), access_token: token, isLoading: false });
     router.push("/");

@@ -3,6 +3,7 @@
 import { SyntheticEvent, useState } from "react";
 import { Button } from "~/components/ui/button";
 import { useAuth } from "~/context/AuthContext";
+import { registerApi } from "~/services/auth.service";
 import {
   Field,
   FieldGroup,
@@ -24,22 +25,8 @@ export default function Register() {
     setError(null);
     setIsLoading(true);
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, email, password }),
-        },
-      );
-
-      const data = await res.json().catch(() => null);
-
-      if (!res.ok) {
-        throw new Error(data?.detail ?? "Registrierung fehlgeschlagen");
-      }
-
-      loginWithToken(data.access_token);
+      const token = await registerApi(username, email, password);
+      loginWithToken(token);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Registrierung fehlgeschlagen",

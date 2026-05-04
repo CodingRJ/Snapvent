@@ -30,17 +30,16 @@ import {
   DrawerTrigger,
 } from "~/components/ui/drawer";
 import { useAuth } from "~/context/AuthContext";
-
-interface Group {
-  id: number;
-  name: string;
-}
+import { Textarea } from "~/components/ui/textarea";
+import {
+  fetchGroups,
+  createGroup as createGroupApi,
+  type Group,
+} from "~/services/groups.service";
 
 export default function Home() {
   const { access_token } = useAuth();
   const [groups, setGroups] = useState<Group[]>([]);
-  const [memberInput, setMemberInput] = useState("");
-  const [members, setMembers] = useState([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
@@ -48,31 +47,18 @@ export default function Home() {
 
   useEffect(() => {
     if (!access_token) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups`, {
-      headers: { Authorization: `Bearer ${access_token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => setGroups(Array.isArray(data) ? data : []))
-      .catch(() => {});
+    fetchGroups(access_token).then(setGroups).catch(() => {});
   }, [access_token]);
 
   const createGroup = async () => {
     if (!groupName.trim() || !access_token) return;
     setCreating(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/groups`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${access_token}`,
-        },
-        body: JSON.stringify({
-          name: groupName.trim(),
-          description: groupDescription.trim(),
-        }),
-      });
-      if (!res.ok) throw new Error();
-      const newGroup: Group = await res.json();
+      const newGroup = await createGroupApi(
+        access_token,
+        groupName.trim(),
+        groupDescription.trim(),
+      );
       setGroups((prev) => [...prev, newGroup]);
       setGroupName("");
       setGroupDescription("");
@@ -80,17 +66,6 @@ export default function Home() {
     } finally {
       setCreating(false);
     }
-  };
-
-  const addMember = () => {
-    const name = memberInput.trim();
-    if (!name) return;
-    setMembers((prev) => [...prev, { id: Date.now(), username: name }]);
-    setMemberInput("");
-  };
-
-  const removeMember = (id: number) => {
-    setMembers((prev) => prev.filter((m) => m.id !== id));
   };
 
   return (
@@ -198,58 +173,13 @@ export default function Home() {
                 <label className="text-sm font-bold block mb-1.5">
                   Beschreibung
                 </label>
-                <Input
+                <Textarea
+                  rows={4}
                   placeholder="Beschreibung"
                   className="text-foreground"
                   value={groupDescription}
                   onChange={(e) => setGroupDescription(e.target.value)}
                 />
-              </div>
-
-              {/* Add members */}
-              <div>
-                <label className="text-sm font-bold block mb-1.5">
-                  Mitglieder hinzufügen
-                </label>
-                <div className="flex gap-2 items-center">
-                  <Input
-                    value={memberInput}
-                    onChange={(e) => setMemberInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && addMember()}
-                    className="flex-1 text-foreground"
-                  />
-                  <Button
-                    onClick={addMember}
-                    className="shrink-0 rounded-lg px-4"
-                  >
-                    Hinzufügen
-                  </Button>
-                </div>
-
-                {/* Member list */}
-                <div className="mt-2 flex flex-col divide-y">
-                  {members.map((member) => (
-                    <div
-                      key={member.id}
-                      className="flex items-center gap-3 py-3"
-                    >
-                      <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center shrink-0">
-                        <User size={16} className="text-primary-foreground" />
-                      </div>
-                      <span className="flex-1 font-bold text-sm">
-                        {member.username}
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-primary shrink-0"
-                        onClick={() => removeMember(member.id)}
-                      >
-                        <Trash2 size={17} />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
 
