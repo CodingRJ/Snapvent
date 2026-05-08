@@ -71,3 +71,38 @@ export async function fetchGroupThumbnails(
   return Array.isArray(data) ? data : [];
 }
 
+export async function fetchQrData(
+  token: string,
+  groupId: string,
+): Promise<string> {
+  const res = await fetch(`${API_URL}/groups/${groupId}/qr-data`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) throw new Error("QR Daten konnten nicht geladen werden");
+
+  return res.json();
+}
+
+export async function joinGroup(
+  token: string,
+  inviteCode: string,
+): Promise<string> {
+  const res = await fetch(`${API_URL}/groups/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ invite_code: inviteCode }),
+  });
+
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    console.error("joinGroup failed", res.status, body);
+    throw new Error(`${res.status}: ${body}`);
+  }
+
+  return res.json();
+}
+

@@ -4,6 +4,43 @@ import { cookies } from "next/headers";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
+export async function fetchQrDataAction(groupId: string): Promise<string> {
+  const token = (await cookies()).get("access_token")?.value;
+  const res = await fetch(`${API_URL}/groups/${groupId}/qr-data`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const raw = await res.text();
+  console.log("[fetchQrDataAction] status:", res.status, "raw body:", raw);
+  if (!res.ok) throw new Error("QR Daten konnten nicht geladen werden");
+
+  const parsed = JSON.parse(raw);
+  if (typeof parsed === "string") return parsed;
+  if (parsed?.invite_code) return String(parsed.invite_code);
+  return raw;
+}
+
+export async function joinGroupAction(inviteCode: string): Promise<string> {
+  const token = (await cookies()).get("access_token")?.value;
+  console.log("[joinGroupAction] invite_code:", inviteCode);
+  console.log("[joinGroupAction] token present:", !!token);
+
+  const res = await fetch(`${API_URL}/groups/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ invite_code: inviteCode }),
+  });
+
+  const body = await res.text();
+  console.log("[joinGroupAction] status:", res.status, "body:", body);
+
+  if (!res.ok) throw new Error(`${res.status}: ${body}`);
+
+  return body;
+}
+
 export async function uploadGroupPhoto(
   groupId: string,
   formData: FormData,

@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MoreVertical, Pen, Plus, QrCode, Trash2, Users, X } from "lucide-react";
+import { CheckCircle2, Loader2, MoreVertical, Pen, Plus, QrCode, Share2, Trash2, Users, X } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
+import { Html5Qrcode } from "html5-qrcode";
 import {
   Empty,
   EmptyContent,
@@ -44,6 +46,66 @@ import {
   deleteGroup as deleteGroupApi,
   type Group,
 } from "~/services/groups.service";
+import { joinGroupAction, fetchQrDataAction } from "~/services/groups.actions";
+
+function QrScanner({ onScanned }: { onScanned: (code: string) => void }) {
+  const [scanError, setScanError] = useState<string | null>(null);
+  const onScannedRef = useRef(onScanned);
+  useEffect(() => {
+    onScannedRef.current = onScanned;
+  });
+
+  useEffect(() => {
+    let scanner: Html5Qrcode | null = null;
+    let stopped = false;
+
+    const start = async () => {
+      try {
+        scanner = new Html5Qrcode("qr-scanner-view");
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          (decodedText) => {
+            if (!stopped) {
+              stopped = true;
+              onScannedRef.current(decodedText);
+            }
+          },
+          () => {},
+        );
+      } catch {
+        setScanError(
+          "Kamera konnte nicht gestartet werden. Bitte erlaube den Kamerazugriff.",
+        );
+      }
+    };
+
+    const timer = setTimeout(start, 150);
+
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+      if (scanner) {
+        scanner
+          .stop()
+          .catch(() => {})
+          .finally(() => {
+            try {
+              scanner?.clear();
+            } catch {}
+          });
+      }
+    };
+  }, []);
+
+  if (scanError) {
+    return (
+      <p className="text-destructive text-sm text-center py-8">{scanError}</p>
+    );
+  }
+
+  return <div id="qr-scanner-view" className="w-full rounded-lg overflow-hidden" />;
+}
 
 export default function Home() {
   const { access_token } = useAuth();
@@ -57,6 +119,16 @@ export default function Home() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [shareQrData, setShareQrData] = useState<string | null>(null);
+  const [shareQrLoading, setShareQrLoading] = useState(false);
+
+  const [scanDialogOpen, setScanDialogOpen] = useState(false);
+  const [scannerKey, setScannerKey] = useState(0);
+  const [joinLoading, setJoinLoading] = useState(false);
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [joinSuccess, setJoinSuccess] = useState(false);
 
   useEffect(() => {
     if (!access_token) return;
@@ -104,6 +176,60 @@ export default function Home() {
     }
   };
 
+  const openShareDialog = async (e: React.MouseEvent, groupId: number) => {
+    e.stopPropagation();
+    setShareQrData(null);
+    setShareQrLoading(true);
+    setShareDialogOpen(true);
+    try {
+      const data = await fetchQrDataAction(String(groupId));
+      setShareQrData(data);
+    } catch {
+      setShareQrData(null);
+    } finally {
+      setShareQrLoading(false);
+    }
+  };
+
+  const closeShareDialog = () => {
+    setShareDialogOpen(false);
+    setShareQrData(null);
+  };
+
+  const handleQrScanned = async (scannedText: string) => {
+    if (joinLoading) return;
+    console.log("QR scanned:", scannedText);
+    setJoinLoading(true);
+    setJoinError(null);
+    try {
+      await joinGroupAction(scannedText);
+      setJoinSuccess(true);
+      const updated = await fetchGroups(access_token!);
+      setGroups(updated);
+      setTimeout(() => {
+        setScanDialogOpen(false);
+        setJoinSuccess(false);
+        setJoinLoading(false);
+      }, 1500);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unbekannter Fehler";
+      setJoinError(msg);
+      setJoinLoading(false);
+    }
+  };
+
+  const closeScanDialog = () => {
+    setScanDialogOpen(false);
+    setJoinLoading(false);
+    setJoinError(null);
+    setJoinSuccess(false);
+  };
+
+  const retryScanner = () => {
+    setJoinError(null);
+    setScannerKey((k) => k + 1);
+  };
+
   return (
     <div className="flex flex-col min-h-full">
       {/* Group list */}
@@ -143,12 +269,18 @@ export default function Home() {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={(e) => openShareDialog(e, group.id)}
+                    >
+                      <Share2 size={16} />
+                      Teilen
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
                       <Pen size={16} />
                       Bearbeiten
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
+                      variant="destructive"
                       onClick={(e) => {
                         e.stopPropagation();
                         openDeleteDialog(group);
@@ -171,6 +303,7 @@ export default function Home() {
           variant="outline"
           size="lg"
           className="w-full border-primary text-primary hover:bg-primary/5"
+          onClick={() => setScanDialogOpen(true)}
         >
           <QrCode size={18} />
           Gruppe per QR Code beitreten
@@ -264,6 +397,8 @@ export default function Home() {
           </DrawerContent>
         </Drawer>
       </div>
+
+      {/* Delete dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -289,6 +424,67 @@ export default function Home() {
               {deleting ? "Löscht..." : "Löschen"}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Share / QR code dialog */}
+      <Dialog open={shareDialogOpen} onOpenChange={closeShareDialog}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>Gruppe teilen</DialogTitle>
+            <DialogDescription>
+              Zeige diesen QR Code deinen Freunden, damit sie der Gruppe
+              beitreten können.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-4">
+            {shareQrLoading && (
+              <Loader2 size={48} className="animate-spin text-muted-foreground" />
+            )}
+            {!shareQrLoading && shareQrData && (
+              <QRCodeSVG value={shareQrData} size={220} />
+            )}
+            {!shareQrLoading && !shareQrData && (
+              <p className="text-destructive text-sm text-center">
+                QR Code konnte nicht geladen werden.
+              </p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Scan / join dialog */}
+      <Dialog open={scanDialogOpen} onOpenChange={closeScanDialog}>
+        <DialogContent showCloseButton>
+          <DialogHeader>
+            <DialogTitle>QR Code scannen</DialogTitle>
+            <DialogDescription>
+              Scanne den QR Code deines Freundes, um der Gruppe beizutreten.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="py-2">
+            {joinSuccess ? (
+              <div className="flex flex-col items-center gap-3 py-6 text-center">
+                <CheckCircle2 size={48} className="text-green-500" />
+                <p className="font-medium">Erfolgreich beigetreten!</p>
+              </div>
+            ) : joinLoading ? (
+              <div className="flex flex-col items-center gap-3 py-6">
+                <Loader2 size={48} className="animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">Beitreten...</p>
+              </div>
+            ) : joinError ? (
+              <div className="flex flex-col items-center gap-4 py-4 text-center">
+                <p className="text-destructive text-sm">{joinError}</p>
+                <Button variant="outline" onClick={retryScanner}>
+                  Erneut versuchen
+                </Button>
+              </div>
+            ) : (
+              <QrScanner key={scannerKey} onScanned={handleQrScanned} />
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
