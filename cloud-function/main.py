@@ -4,7 +4,7 @@ import io
 import json
 import urllib.request
 from google.cloud import storage
-from PIL import Image
+from PIL import Image, ImageOps
 from pillow_heif import register_heif_opener
 import google.auth.transport.requests
 import google.oauth2.id_token
@@ -24,6 +24,10 @@ def process_image(cloud_event):
     file_name = data["name"]
     file_size = data.get("size", 0)
 
+    if bucket_name == THUMBNAIL_BUCKET_NAME:
+        print(f"File {file_name} is already in the thumbnail bucket. Ignoring to prevent loop.")
+        return
+
     print(f"Processing file: {file_name} from bucket: {bucket_name}")
 
     source_bucket = storage_client.bucket(bucket_name)
@@ -38,6 +42,8 @@ def process_image(cloud_event):
     try:
         img = Image.open(io.BytesIO(image_bytes))
         original_format = img.format if img.format else "JPEG"
+
+        img = ImageOps.exif_transpose(img)
 
         img.thumbnail((400, 400))
 
