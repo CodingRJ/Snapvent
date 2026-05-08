@@ -10,6 +10,16 @@ export interface Thumbnail {
   thumb_url: string;
 }
 
+// Unwrap IDs that the API may return as objects (e.g. MongoDB {$oid:"..."})
+function extractId(v: unknown): number | string {
+  if (typeof v === "number" || typeof v === "string") return v;
+  if (v && typeof v === "object") {
+    const vals = Object.values(v as object);
+    if (vals.length > 0) return extractId(vals[0]);
+  }
+  return String(v ?? "");
+}
+
 export async function fetchGroups(token: string): Promise<Group[]> {
   const res = await fetch(`${API_URL}/groups`, {
     headers: { Authorization: `Bearer ${token}` },
@@ -19,10 +29,9 @@ export async function fetchGroups(token: string): Promise<Group[]> {
 
   const data = await res.json();
   if (!Array.isArray(data)) return [];
-  // Normalize: API may return group_id instead of id
   return data.map((g: Record<string, unknown>) => ({
     ...g,
-    id: g.id ?? g.group_id,
+    id: extractId(g.id ?? g.group_id),
   })) as Group[];
 }
 

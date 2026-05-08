@@ -20,6 +20,7 @@ import {
 } from "~/services/groups.service";
 import { uploadGroupPhoto } from "~/services/groups.actions";
 import Image from "next/image";
+import PictureViewer from "~/components/PictureViewer";
 
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
@@ -27,6 +28,7 @@ export default function GroupPage() {
   const [group, setGroup] = useState<Group | null>(null);
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const thumbnailCountRef = useRef(0);
 
@@ -99,46 +101,53 @@ export default function GroupPage() {
       </div>
 
       {/* Photo grid or empty state */}
-      {thumbnails.filter((t) => t.thumb_url).length === 0 ? (
-        <Empty className="flex-1">
-          <EmptyMedia variant="icon">
-            <ImageIcon />
-          </EmptyMedia>
-          <EmptyContent>
-            <EmptyTitle>Keine Bilder</EmptyTitle>
-            <EmptyDescription>
-              Ersstelle / Lade deine ersten Bilder in diese Gruppe hoch.
-            </EmptyDescription>
-          </EmptyContent>
-        </Empty>
-      ) : (
-        <div className="grid grid-cols-3 gap-3">
-          {thumbnails
-            .filter((t) => t.thumb_url)
-            .map((thumb) => (
-              <div
+      {(() => {
+        const visible = thumbnails.filter((t) => t.thumb_url);
+        if (visible.length === 0) {
+          return (
+            <Empty className="flex-1">
+              <EmptyMedia variant="icon">
+                <ImageIcon />
+              </EmptyMedia>
+              <EmptyContent>
+                <EmptyTitle>Keine Bilder</EmptyTitle>
+                <EmptyDescription>
+                  Ersstelle / Lade deine ersten Bilder in diese Gruppe hoch.
+                </EmptyDescription>
+              </EmptyContent>
+            </Empty>
+          );
+        }
+        return (
+          <div className="grid grid-cols-3 gap-3">
+            {visible.map((thumb, idx) => (
+              <button
                 key={thumb.id}
+                onClick={() => setViewerIndex(idx)}
                 className="relative aspect-square rounded-xl overflow-hidden bg-muted/30"
               >
-                <Image
-                  src={thumb.thumb_url}
-                  alt="picture"
-                  fill
-                  className="object-cover"
-                  sizes="33vw"
-                />
-              </div>
+                {typeof thumb.thumb_url === "string" && thumb.thumb_url && (
+                  <Image
+                    src={thumb.thumb_url}
+                    alt="picture"
+                    fill
+                    className="object-cover"
+                    sizes="33vw"
+                  />
+                )}
+              </button>
             ))}
 
-          {/* "+" add cell always at the end */}
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="aspect-square border rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted/30 transition-colors"
-          >
-            <Plus size={24} />
-          </button>
-        </div>
-      )}
+            {/* "+" add cell always at the end */}
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="aspect-square border rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted/30 transition-colors"
+            >
+              <Plus size={24} />
+            </button>
+          </div>
+        );
+      })()}
 
       {/* Hidden file input — gallery picker (no capture) */}
       <input
@@ -161,6 +170,16 @@ export default function GroupPage() {
           {uploading ? "Wird hochgeladen..." : "Bilder uploaden"}
         </Button>
       </div>
+
+      {/* Full-screen picture viewer */}
+      {viewerIndex !== null && access_token && (
+        <PictureViewer
+          thumbnails={thumbnails.filter((t) => t.thumb_url)}
+          initialIndex={viewerIndex}
+          token={access_token}
+          onClose={() => setViewerIndex(null)}
+        />
+      )}
     </div>
   );
 }
