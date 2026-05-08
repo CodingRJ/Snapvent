@@ -2,15 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  MoreVertical,
-  Plus,
-  QrCode,
-  Trash2,
-  User,
-  Users,
-  X,
-} from "lucide-react";
+import { MoreVertical, Pen, Plus, QrCode, Trash2, Users, X } from "lucide-react";
 import {
   Empty,
   EmptyContent,
@@ -30,11 +22,26 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "~/components/ui/drawer";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/components/ui/dialog";
 import { useAuth } from "~/context/AuthContext";
 import { Textarea } from "~/components/ui/textarea";
 import {
   fetchGroups,
   createGroup as createGroupApi,
+  deleteGroup as deleteGroupApi,
   type Group,
 } from "~/services/groups.service";
 
@@ -47,6 +54,10 @@ export default function Home() {
   const [groupDescription, setGroupDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
   useEffect(() => {
     if (!access_token) return;
     fetchGroups(access_token)
@@ -57,16 +68,34 @@ export default function Home() {
       .catch((err) => console.error("fetchGroups failed:", err));
   }, [access_token]);
 
+  const openDeleteDialog = (group: Group) => {
+    setDeletingGroup(group);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!access_token || !deletingGroup) return;
+    setDeleting(true);
+    try {
+      await deleteGroupApi(access_token, String(deletingGroup.id));
+      setGroups((prev) => prev.filter((g) => g.id !== deletingGroup.id));
+      setDeleteDialogOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const createGroup = async () => {
     if (!groupName.trim() || !access_token) return;
     setCreating(true);
     try {
-      const newGroup = await createGroupApi(
+      await createGroupApi(
         access_token,
         groupName.trim(),
         groupDescription.trim(),
       );
-      setGroups((prev) => [...prev, newGroup]);
+      const updated = await fetchGroups(access_token);
+      setGroups(updated);
       setGroupName("");
       setGroupDescription("");
       setDrawerOpen(false);
@@ -102,13 +131,34 @@ export default function Home() {
               >
                 <div className="w-16 h-16 border rounded-lg shrink-0" />
                 <span className="flex-1 font-medium">{group.name}</span>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-muted-foreground shrink-0"
-                >
-                  <MoreVertical size={18} />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-muted-foreground shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <MoreVertical size={18} />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+                      <Pen size={16} />
+                      Bearbeiten
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDeleteDialog(group);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                      Löschen
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             ))}
           </div>
@@ -214,6 +264,33 @@ export default function Home() {
           </DrawerContent>
         </Drawer>
       </div>
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gruppe löschen</DialogTitle>
+            <DialogDescription>
+              Möchtest du die Gruppe &quot;{deletingGroup?.name}&quot; wirklich
+              löschen? Diese Aktion kann nicht rückgängig gemacht werden.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={deleting}
+            >
+              Abbrechen
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={deleting}
+            >
+              {deleting ? "Löscht..." : "Löschen"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

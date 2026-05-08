@@ -45,6 +45,18 @@ export async function createGroup(
   return res.json();
 }
 
+export async function deleteGroup(
+  token: string,
+  groupId: string,
+): Promise<void> {
+  const res = await fetch(`${API_URL}/groups/${groupId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) throw new Error("Gruppe konnte nicht gelöscht werden");
+}
+
 export async function fetchGroupThumbnails(
   token: string,
   groupId: string,

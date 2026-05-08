@@ -2,8 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import { MoreVertical, Plus } from "lucide-react";
+import { ImageIcon, MoreVertical, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyMedia,
+  EmptyTitle,
+} from "~/components/ui/empty";
 import { useAuth } from "~/context/AuthContext";
 import {
   fetchGroups,
@@ -91,31 +98,47 @@ export default function GroupPage() {
         </Button>
       </div>
 
-      {/* Photo grid */}
-      <div className="flex-1 grid grid-cols-3 gap-1.5">
-        {thumbnails.filter((t) => t.thumb_url).map((thumb) => (
-          <div
-            key={thumb.id}
-            className="relative aspect-square rounded-xl overflow-hidden bg-muted/30"
-          >
-            <Image
-              src={thumb.thumb_url}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="33vw"
-            />
-          </div>
-        ))}
+      {/* Photo grid or empty state */}
+      {thumbnails.filter((t) => t.thumb_url).length === 0 ? (
+        <Empty className="flex-1">
+          <EmptyMedia variant="icon">
+            <ImageIcon />
+          </EmptyMedia>
+          <EmptyContent>
+            <EmptyTitle>Keine Bilder</EmptyTitle>
+            <EmptyDescription>
+              Ersstelle / Lade deine ersten Bilder in diese Gruppe hoch.
+            </EmptyDescription>
+          </EmptyContent>
+        </Empty>
+      ) : (
+        <div className="grid grid-cols-3 gap-3">
+          {thumbnails
+            .filter((t) => t.thumb_url)
+            .map((thumb) => (
+              <div
+                key={thumb.id}
+                className="relative aspect-square rounded-xl overflow-hidden bg-muted/30"
+              >
+                <Image
+                  src={thumb.thumb_url}
+                  alt="picture"
+                  fill
+                  className="object-cover"
+                  sizes="33vw"
+                />
+              </div>
+            ))}
 
-        {/* "+" add cell always at the end */}
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="aspect-square border rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted/30 transition-colors"
-        >
-          <Plus size={24} />
-        </button>
-      </div>
+          {/* "+" add cell always at the end */}
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="aspect-square border rounded-xl flex items-center justify-center text-muted-foreground hover:bg-muted/30 transition-colors"
+          >
+            <Plus size={24} />
+          </button>
+        </div>
+      )}
 
       {/* Hidden file input — gallery picker (no capture) */}
       <input
@@ -126,7 +149,7 @@ export default function GroupPage() {
         onChange={handleFileChange}
       />
 
-      {/* Sticky upload button */}
+      {/* Fixed upload button */}
       <div className="sticky bottom-0 bg-background pt-4 pb-16">
         <Button
           size="lg"
