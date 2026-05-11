@@ -8,7 +8,7 @@ import { uploadGroupPhoto } from "~/services/groups.actions";
 
 const baseNavItems = [
   { href: "/", icon: Home, label: "Home" },
-  { href: "/profile", icon: User, label: "Profil" },
+  { href: "/profil", icon: User, label: "Profil" },
   { href: "/premium", icon: Gem, label: "Premium" },
 ];
 
