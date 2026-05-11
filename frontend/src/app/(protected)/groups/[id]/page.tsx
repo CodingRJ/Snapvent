@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "next/navigation";
-import { ImageIcon, MoreVertical, Plus } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { ImageIcon, Plus } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import {
   Empty,
@@ -21,10 +21,12 @@ import {
 import { uploadGroupPhoto } from "~/services/groups.actions";
 import Image from "next/image";
 import PictureViewer from "~/components/PictureViewer";
+import GroupActionsMenu from "~/components/GroupActionsMenu";
 
 export default function GroupPage() {
   const { id } = useParams<{ id: string }>();
   const { access_token } = useAuth();
+  const router = useRouter();
   const [group, setGroup] = useState<Group | null>(null);
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -95,9 +97,11 @@ export default function GroupPage() {
         <h1 className="text-2xl font-bold text-primary">
           {group?.name ?? "Gruppe"}
         </h1>
-        <Button variant="ghost" size="icon" className="text-muted-foreground">
-          <MoreVertical size={18} />
-        </Button>
+        <GroupActionsMenu
+          groupId={id}
+          groupName={group?.name ?? ""}
+          onDeleted={() => router.push("/")}
+        />
       </div>
 
       {/* Photo grid or empty state */}

@@ -93,6 +93,25 @@ export async function fetchQrData(
   return res.json();
 }
 
+export interface GroupMember {
+  userId: string | number;
+  username: string;
+}
+
+export async function fetchGroupMembers(
+  token: string,
+  groupId: string,
+): Promise<GroupMember[]> {
+  const res = await fetch(`${API_URL}/groups/${groupId}/members`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) throw new Error("Mitglieder konnten nicht geladen werden");
+
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+
 export async function joinGroup(
   token: string,
   inviteCode: string,

@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, MoreVertical, Pen, Plus, QrCode, Share2, Trash2, Users, X } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { CheckCircle2, Loader2, Plus, QrCode, Users, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   Empty,
@@ -25,16 +24,9 @@ import {
   DrawerTrigger,
 } from "~/components/ui/drawer";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "~/components/ui/dropdown-menu";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "~/components/ui/dialog";
@@ -43,10 +35,10 @@ import { Textarea } from "~/components/ui/textarea";
 import {
   fetchGroups,
   createGroup as createGroupApi,
-  deleteGroup as deleteGroupApi,
   type Group,
 } from "~/services/groups.service";
-import { joinGroupAction, fetchQrDataAction } from "~/services/groups.actions";
+import { joinGroupAction } from "~/services/groups.actions";
+import GroupActionsMenu from "~/components/GroupActionsMenu";
 
 function QrScanner({ onScanned }: { onScanned: (code: string) => void }) {
   const [scanError, setScanError] = useState<string | null>(null);
@@ -116,14 +108,6 @@ export default function Home() {
   const [groupDescription, setGroupDescription] = useState("");
   const [creating, setCreating] = useState(false);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deletingGroup, setDeletingGroup] = useState<Group | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  const [shareDialogOpen, setShareDialogOpen] = useState(false);
-  const [shareQrData, setShareQrData] = useState<string | null>(null);
-  const [shareQrLoading, setShareQrLoading] = useState(false);
-
   const [scanDialogOpen, setScanDialogOpen] = useState(false);
   const [scannerKey, setScannerKey] = useState(0);
   const [joinLoading, setJoinLoading] = useState(false);
@@ -139,23 +123,6 @@ export default function Home() {
       })
       .catch((err) => console.error("fetchGroups failed:", err));
   }, [access_token]);
-
-  const openDeleteDialog = (group: Group) => {
-    setDeletingGroup(group);
-    setDeleteDialogOpen(true);
-  };
-
-  const confirmDelete = async () => {
-    if (!access_token || !deletingGroup) return;
-    setDeleting(true);
-    try {
-      await deleteGroupApi(access_token, String(deletingGroup.id));
-      setGroups((prev) => prev.filter((g) => g.id !== deletingGroup.id));
-      setDeleteDialogOpen(false);
-    } finally {
-      setDeleting(false);
-    }
-  };
 
   const createGroup = async () => {
     if (!groupName.trim() || !access_token) return;
@@ -174,26 +141,6 @@ export default function Home() {
     } finally {
       setCreating(false);
     }
-  };
-
-  const openShareDialog = async (e: React.MouseEvent, groupId: number) => {
-    e.stopPropagation();
-    setShareQrData(null);
-    setShareQrLoading(true);
-    setShareDialogOpen(true);
-    try {
-      const data = await fetchQrDataAction(String(groupId));
-      setShareQrData(data);
-    } catch {
-      setShareQrData(null);
-    } finally {
-      setShareQrLoading(false);
-    }
-  };
-
-  const closeShareDialog = () => {
-    setShareDialogOpen(false);
-    setShareQrData(null);
   };
 
   const handleQrScanned = async (scannedText: string) => {
@@ -257,40 +204,13 @@ export default function Home() {
               >
                 <div className="w-16 h-16 border rounded-lg shrink-0" />
                 <span className="flex-1 font-medium">{group.name}</span>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="text-muted-foreground shrink-0"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreVertical size={18} />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={(e) => openShareDialog(e, group.id)}
-                    >
-                      <Share2 size={16} />
-                      Teilen
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                      <Pen size={16} />
-                      Bearbeiten
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      variant="destructive"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteDialog(group);
-                      }}
-                    >
-                      <Trash2 size={16} />
-                      Löschen
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <GroupActionsMenu
+                  groupId={group.id}
+                  groupName={group.name}
+                  onDeleted={() =>
+                    setGroups((prev) => prev.filter((g) => g.id !== group.id))
+                  }
+                />
               </div>
             ))}
           </div>
@@ -322,7 +242,6 @@ export default function Home() {
           </DrawerTrigger>
 
           <DrawerContent className="h-[90vh] md:max-w-lg md:left-1/2 md:-translate-x-1/2 md:right-auto md:rounded-xl">
-            {/* Header */}
             <DrawerHeader className="flex-row items-start text-left pb-4">
               <div className="flex flex-col gap-1">
                 <DrawerTitle className="text-xl font-bold text-primary">
@@ -344,9 +263,7 @@ export default function Home() {
               </DrawerClose>
             </DrawerHeader>
 
-            {/* Scrollable body */}
             <div className="flex-1 overflow-y-auto px-4 pb-2">
-              {/* Group name */}
               <div className="mb-5">
                 <label className="text-sm font-bold block mb-1.5">
                   Gruppenname
@@ -359,7 +276,6 @@ export default function Home() {
                 />
               </div>
 
-              {/* Group description */}
               <div className="mb-5">
                 <label className="text-sm font-bold block mb-1.5">
                   Beschreibung
@@ -374,7 +290,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Footer buttons */}
             <DrawerFooter className="pt-2">
               <DrawerClose asChild>
                 <Button
@@ -397,61 +312,6 @@ export default function Home() {
           </DrawerContent>
         </Drawer>
       </div>
-
-      {/* Delete dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Gruppe löschen</DialogTitle>
-            <DialogDescription>
-              Möchtest du die Gruppe &quot;{deletingGroup?.name}&quot; wirklich
-              löschen? Diese Aktion kann nicht rückgängig gemacht werden.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={deleting}
-            >
-              Abbrechen
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDelete}
-              disabled={deleting}
-            >
-              {deleting ? "Löscht..." : "Löschen"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Share / QR code dialog */}
-      <Dialog open={shareDialogOpen} onOpenChange={closeShareDialog}>
-        <DialogContent showCloseButton>
-          <DialogHeader>
-            <DialogTitle>Gruppe teilen</DialogTitle>
-            <DialogDescription>
-              Zeige diesen QR Code deinen Freunden, damit sie der Gruppe
-              beitreten können.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center justify-center py-4">
-            {shareQrLoading && (
-              <Loader2 size={48} className="animate-spin text-muted-foreground" />
-            )}
-            {!shareQrLoading && shareQrData && (
-              <QRCodeSVG value={shareQrData} size={220} />
-            )}
-            {!shareQrLoading && !shareQrData && (
-              <p className="text-destructive text-sm text-center">
-                QR Code konnte nicht geladen werden.
-              </p>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
 
       {/* Scan / join dialog */}
       <Dialog open={scanDialogOpen} onOpenChange={closeScanDialog}>
