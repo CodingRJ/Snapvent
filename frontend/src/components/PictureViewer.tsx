@@ -18,9 +18,15 @@ async function resolveFullUrl(token: string, id: string | number): Promise<strin
   });
   if (!res.ok) return null;
   const raw: unknown = await res.json();
-  if (typeof raw !== "string" || !raw) return null;
-  urlCache.set(id, raw);
-  return raw;
+  const url =
+    typeof raw === "string"
+      ? raw
+      : raw && typeof raw === "object" && "full_url" in raw && typeof (raw as Record<string, unknown>).full_url === "string"
+        ? (raw as Record<string, unknown>).full_url as string
+        : null;
+  if (!url) return null;
+  urlCache.set(id, url);
+  return url;
 }
 
 interface Props {
