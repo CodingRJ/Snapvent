@@ -14,6 +14,10 @@ class CreateGroupIn(BaseModel):
     description: Optional[str] = None
     usernames: Optional[list[str]] = None
 
+class UpdateGroupIn(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+
 class JoinGroupIn(BaseModel):
     invite_code: str
 
@@ -36,6 +40,16 @@ def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and
 @router.get("")
 def list_groups(user_id: str = Depends(verify_token_and_get_user_id)):
     return db.list_user_groups(user_id)
+
+@router.patch("/{group_id}")
+def update_group(group_id: str, payload: UpdateGroupIn, user_id: str = Depends(verify_token_and_get_user_id)):
+    try:
+        updated_group = db.update_group(group_id, user_id, payload.name, payload.description)
+        return updated_group
+    except db.PermissionDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except db.ResourceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.delete("/{group_id}")
 def delete_group(group_id: str, user_id: str = Depends(verify_token_and_get_user_id)):

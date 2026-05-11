@@ -140,6 +140,38 @@ def get_group_by_join_code(join_code: str) -> Optional[dict]:
     """Find a group by its join code (for QR code joining)."""
     return groups.get(Q.join_code == join_code)
 
+def update_group(group_id: str, requesting_user_id: str, name: Optional[str] = None, description: Optional[str] = None) -> dict:
+    """
+    Updates a group's name and/or description.
+    Only the group organizer or a group-admin can perform this action.
+    """
+    group = get_group_by_id(group_id)
+    if not group:
+        raise ResourceNotFoundError("Group not found")
+
+    requester_membership = group_members.get(
+        (Q.group_id == group_id) & (Q.user_id == requesting_user_id)
+    )
+    if not requester_membership:
+        raise PermissionDeniedError("You are not a member of this group")
+
+    is_creator = (group["organizer_id"] == requesting_user_id)
+    is_co_organizer = (requester_membership["role"] == "group-admin")
+
+    if not (is_creator or is_co_organizer):
+        raise PermissionDeniedError("Not authorized to update this group")
+
+    update_data = {}
+    if name is not None:
+        update_data["name"] = name
+    if description is not None:
+        update_data["description"] = description
+
+    if update_data:
+        groups.update(update_data, Q.group_id == group_id)
+        return get_group_by_id(group_id)
+    return group
+
 def delete_group(group_id: str, requesting_user_id: str) -> list[str]:
     """
     Deletes a group, all its members, and all its images.
