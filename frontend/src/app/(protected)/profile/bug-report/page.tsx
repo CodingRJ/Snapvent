@@ -18,13 +18,12 @@ export default function BugReportPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col p-4 gap-4 bg-white">
-      <h1 className="text-xl font-bold text-[#901F26]">
-        Problem melden
-      </h1>
+    <div className="min-h-screen flex flex-col gap-4 bg-white">
+      <h1 className="text-2xl font-bold text-primary mb-4">Problem melden</h1>
 
-      <p className="text-sm text-gray-600">
-        Ist dir ein Problem aufgefallen oder du möchtest uns Rückmeldung zu der App geben? Dann schreib uns eine Nachricht.
+      <p className="text-sm text-foreground">
+        Ist dir ein Problem aufgefallen oder du möchtest uns Rückmeldung zu der
+        App geben? Dann schreib uns eine Nachricht.
       </p>
 
       <div className="flex flex-col gap-3">

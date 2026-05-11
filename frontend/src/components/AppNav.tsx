@@ -8,7 +8,7 @@ import { uploadGroupPhoto } from "~/services/groups.actions";
 
 const baseNavItems = [
   { href: "/", icon: Home, label: "Home" },
-  { href: "/profil", icon: User, label: "Profil" },
+  { href: "/profile", icon: User, label: "Profil" },
   { href: "/premium", icon: Gem, label: "Premium" },
 ];
 
@@ -35,12 +35,24 @@ export function AppNav() {
   };
 
   const mobileItems: Array<
-    | { type: "link"; href: string; icon: React.ElementType; label: string; active?: boolean }
+    | {
+        type: "link";
+        href: string;
+        icon: React.ElementType;
+        label: string;
+        active?: boolean;
+      }
     | { type: "camera"; icon: React.ElementType; label: string }
   > = groupId
     ? [
         { type: "link", href: "/", icon: Home, label: "Home" },
-        { type: "link", href: `/groups/${groupId}`, icon: Users, label: "Gruppe", active: true },
+        {
+          type: "link",
+          href: `/groups/${groupId}`,
+          icon: Users,
+          label: "Gruppe",
+          active: true,
+        },
         { type: "camera", icon: Camera, label: "Kamera" },
         { type: "link", href: "/profile", icon: User, label: "Profil" },
         { type: "link", href: "/premium", icon: Gem, label: "Premium" },
