@@ -205,6 +205,27 @@ def list_group_members(group_id: str):
     return group_members.search(Q.group_id == group_id)
 
 
+def list_group_members_with_details(group_id: str):
+    """Returns a list of members with their user details for a given group."""
+    memberships = group_members.search(Q.group_id == group_id)
+    
+    user_ids = [m['user_id'] for m in memberships]
+    
+    group_users = users.search(Q.user_id.one_of(user_ids))
+    
+    users_by_id = {u['user_id']: u for u in group_users}
+    
+    members_with_details = []
+    for membership in memberships:
+        user_details = users_by_id.get(membership['user_id'])
+        if user_details:
+            members_with_details.append({
+                "user_id": user_details['user_id'],
+                "username": user_details['username'],
+            })
+            
+    return members_with_details
+
 def remove_member(group_id: str, member_to_remove_id: str, requesting_user_id: str):
     """
     Removes a member if the requester is the organizer OR

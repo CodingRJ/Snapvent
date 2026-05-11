@@ -72,6 +72,17 @@ def join_group(payload: JoinGroupIn, user_id: str = Depends(verify_token_and_get
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+@router.get("/{group_id}/members")
+def get_group_members(group_id: str, user_id: str = Depends(verify_token_and_get_user_id)):
+    try:
+        db.verify_membership(user_id, group_id)
+        members = db.list_group_members_with_details(group_id)
+        return members
+    except db.PermissionDeniedError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except db.ResourceNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
 @router.delete("/{group_id}/members/{member_id}")
 def remove_member(group_id: str, member_id: str, user_id: str = Depends(verify_token_and_get_user_id)):
     try:
