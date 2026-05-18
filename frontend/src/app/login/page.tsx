@@ -10,6 +10,7 @@ import {
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
 import { useAuth } from "~/context/AuthContext";
+import { PasswordRequirements } from "~/components/PasswordRequirements";
 
 export default function Login() {
   const { login } = useAuth();
@@ -59,6 +60,7 @@ export default function Login() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <PasswordRequirements password={password} />
                   </Field>
                   {error && <p className="text-sm text-red-300">{error}</p>}
                   <Field>

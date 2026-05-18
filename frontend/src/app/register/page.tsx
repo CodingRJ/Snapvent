@@ -11,6 +11,10 @@ import {
   FieldSet,
 } from "~/components/ui/field";
 import { Input } from "~/components/ui/input";
+import {
+  PasswordRequirements,
+  validatePassword,
+} from "~/components/PasswordRequirements";
 
 export default function Register() {
   const { loginWithToken } = useAuth();
@@ -20,8 +24,11 @@ export default function Register() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  const passwordValid = validatePassword(password);
+
   async function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!passwordValid) return;
     setError(null);
     setIsLoading(true);
     try {
@@ -73,6 +80,7 @@ export default function Register() {
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
+                    <PasswordRequirements password={password} />
                   </Field>
                   {error && <p className="text-sm text-red-300">{error}</p>}
                   <Field>
@@ -81,7 +89,7 @@ export default function Register() {
                       type="submit"
                       variant="outline"
                       size="lg"
-                      disabled={isLoading}
+                      disabled={isLoading || !passwordValid}
                     >
                       {isLoading ? "Laden..." : "Registrieren"}
                     </Button>

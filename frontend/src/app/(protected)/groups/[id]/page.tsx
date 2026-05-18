@@ -182,6 +182,7 @@ export default function GroupPage() {
           initialIndex={viewerIndex}
           token={access_token}
           onClose={() => setViewerIndex(null)}
+          onDelete={(id) => setThumbnails((prev) => prev.filter((t) => t.id !== id))}
         />
       )}
     </div>

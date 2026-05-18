@@ -1,9 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronLeft, MoreVertical } from "lucide-react";
+import { ChevronLeft, MoreVertical, Trash2 } from "lucide-react";
 import Image from "next/image";
 import type { Thumbnail } from "~/services/groups.service";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "~/components/ui/dropdown-menu";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL;
 const SLIDE_MS = 280;
@@ -34,15 +40,18 @@ interface Props {
   initialIndex: number;
   token: string;
   onClose: () => void;
+  onDelete?: (id: string | number) => void;
 }
 
-export default function PictureViewer({ thumbnails, initialIndex, token, onClose }: Props) {
+export default function PictureViewer({ thumbnails, initialIndex, token, onClose, onDelete }: Props) {
+  const [items, setItems] = useState(thumbnails);
   const [index, setIndex] = useState(initialIndex);
   const [urls, setUrls] = useState<Record<string | number, string>>({});
   // slideX: additional offset on top of the -33.333% base (pixels from drag or animation)
   const [slideX, setSlideX] = useState(0);
   // instant: disables CSS transition so we can teleport without a visible jump
   const [instant, setInstant] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const indexRef = useRef(initialIndex);
   const touchStartX = useRef<number | null>(null);
@@ -50,7 +59,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
 
   const loadUrl = useCallback(
     async (idx: number) => {
-      const thumb = thumbnails[idx];
+      const thumb = items[idx];
       if (!thumb) return;
       if (urlCache.has(thumb.id)) {
         setUrls((prev) => ({ ...prev, [thumb.id]: urlCache.get(thumb.id)! }));
@@ -63,7 +72,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
         // fall back to thumbnail already visible in the slot
       }
     },
-    [thumbnails, token],
+    [items, token],
   );
 
   useEffect(() => {
@@ -83,7 +92,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
   const settle = useCallback(
     (dir: 1 | -1) => {
       const next = indexRef.current + dir;
-      if (next < 0 || next >= thumbnails.length) return;
+      if (next < 0 || next >= items.length) return;
       const w = trackRef.current?.offsetWidth ?? window.innerWidth;
 
       // 1. Slide the strip to the target position (with CSS transition)
@@ -100,7 +109,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
         requestAnimationFrame(() => requestAnimationFrame(() => setInstant(false)));
       }, SLIDE_MS);
     },
-    [thumbnails.length],
+    [items.length],
   );
 
   useEffect(() => {
@@ -113,14 +122,45 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
     return () => window.removeEventListener("keydown", handler);
   }, [settle, onClose]);
 
-  const current = thumbnails[index];
+  const handleDelete = useCallback(async () => {
+    const item = items[index];
+    if (!item || deleting) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${API_URL}/pictures/${item.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Delete failed");
+
+      onDelete?.(item.id);
+      const newItems = items.filter((_, i) => i !== index);
+
+      if (newItems.length === 0) {
+        onClose();
+        return;
+      }
+
+      // Stay at same index (now pointing to next item), or step back at the end
+      const newIndex = index >= newItems.length ? newItems.length - 1 : index;
+      indexRef.current = newIndex;
+      setItems(newItems);
+      setIndex(newIndex);
+    } catch {
+      // silently ignore — user can retry
+    } finally {
+      setDeleting(false);
+    }
+  }, [items, index, token, deleting, onDelete, onClose]);
+
+  const current = items[index];
   if (!current) return null;
 
   // The three visible slots: prev | current | next
   const slots = [
-    thumbnails[index - 1] ?? null,
+    items[index - 1] ?? null,
     current,
-    thumbnails[index + 1] ?? null,
+    items[index + 1] ?? null,
   ] as const;
 
   const urlFor = (thumb: Thumbnail | null) =>
@@ -134,11 +174,25 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
           <ChevronLeft size={24} />
         </button>
         <span className="text-sm font-medium truncate px-2">
-          {index + 1} / {thumbnails.length}
+          {index + 1} / {items.length}
         </span>
-        <button className="p-1 -mr-1">
-          <MoreVertical size={20} />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-1 -mr-1">
+              <MoreVertical size={20} />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem
+              variant="destructive"
+              disabled={deleting}
+              onClick={handleDelete}
+            >
+              <Trash2 size={16} />
+              {deleting ? "Wird gelöscht…" : "Löschen"}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       {/* Swipe container — clips the strip so side slides stay hidden */}
@@ -155,7 +209,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
           // Dampen drag at the edges so it feels bounded
           const bounded =
             (indexRef.current === 0 && delta > 0) ||
-            (indexRef.current === thumbnails.length - 1 && delta < 0)
+            (indexRef.current === items.length - 1 && delta < 0)
               ? delta * 0.25
               : delta;
           setSlideX(bounded);
@@ -165,7 +219,7 @@ export default function PictureViewer({ thumbnails, initialIndex, token, onClose
           const delta = e.changedTouches[0].clientX - touchStartX.current;
           touchStartX.current = null;
 
-          if (delta < -60 && indexRef.current < thumbnails.length - 1) {
+          if (delta < -60 && indexRef.current < items.length - 1) {
             settle(1);
           } else if (delta > 60 && indexRef.current > 0) {
             settle(-1);
