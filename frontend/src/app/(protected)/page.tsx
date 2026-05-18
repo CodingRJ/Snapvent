@@ -96,7 +96,9 @@ function QrScanner({ onScanned }: { onScanned: (code: string) => void }) {
     );
   }
 
-  return <div id="qr-scanner-view" className="w-full rounded-lg overflow-hidden" />;
+  return (
+    <div id="qr-scanner-view" className="w-full rounded-lg overflow-hidden" />
+  );
 }
 
 export default function Home() {
@@ -331,7 +333,10 @@ export default function Home() {
               </div>
             ) : joinLoading ? (
               <div className="flex flex-col items-center gap-3 py-6">
-                <Loader2 size={48} className="animate-spin text-muted-foreground" />
+                <Loader2
+                  size={48}
+                  className="animate-spin text-muted-foreground"
+                />
                 <p className="text-sm text-muted-foreground">Beitreten...</p>
               </div>
             ) : joinError ? (

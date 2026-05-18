@@ -2,23 +2,32 @@
 
 import { useState } from "react";
 import { Button } from "~/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "~/components/ui/dialog";
 
 export default function BugReportPage() {
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [successOpen, setSuccessOpen] = useState(false);
 
   const handleSubmit = () => {
-    // placeholder send logic
-    console.log({ subject, message });
+    setSuccessOpen(true);
+  };
 
+  const handleClose = () => {
+    setSuccessOpen(false);
     setSubject("");
     setMessage("");
-
-    alert("Nachricht gesendet!");
   };
 
   return (
-    <div className="min-h-screen flex flex-col gap-4 bg-white">
+    <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-bold text-primary mb-4">Problem melden</h1>
 
       <p className="text-sm text-foreground">
@@ -44,11 +53,28 @@ export default function BugReportPage() {
 
         <Button
           onClick={handleSubmit}
-          className="bg-[#901F26] text-white rounded-lg"
+          size="lg"
+          className="w-full"
+          disabled={!subject.trim() || !message.trim()}
         >
           Senden
         </Button>
       </div>
+
+      <Dialog open={successOpen} onOpenChange={handleClose}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Nachricht erhalten!</DialogTitle>
+            <DialogDescription>
+              Wir haben deine Nachricht erhalten und werden uns so schnell wie
+              möglich darum kümmern. Danke für dein Feedback!
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={handleClose}>Schliessen</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

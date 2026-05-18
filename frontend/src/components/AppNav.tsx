@@ -84,7 +84,7 @@ export function AppNav() {
               </button>
             );
           }
-          const active = item.active ?? pathname === item.href;
+          const active = item.active ?? (item.href === "/" ? pathname === "/" : pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
@@ -107,7 +107,7 @@ export function AppNav() {
         </div>
         <nav className="flex flex-col gap-1 p-3 flex-1">
           {baseNavItems.map(({ href, icon: Icon, label }) => {
-            const active = pathname === href;
+            const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
             return (
               <Link
                 key={href}

@@ -5,7 +5,7 @@ import { Check, X } from "lucide-react";
 const RULES = [
   { label: "Mindestens 12 Zeichen", test: (p: string) => p.length >= 12 },
   {
-    label: "Mindestens ein Großbuchstabe",
+    label: "Mindestens ein Grossbuchstabe",
     test: (p: string) => /[A-Z]/.test(p),
   },
   {

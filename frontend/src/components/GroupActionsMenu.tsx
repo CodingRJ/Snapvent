@@ -46,6 +46,7 @@ export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Prop
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteErrorOpen, setDeleteErrorOpen] = useState(false);
 
   const openMembers = async () => {
     if (!access_token) return;
@@ -83,6 +84,9 @@ export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Prop
       await deleteGroupApi(access_token, id);
       setDeleteOpen(false);
       onDeleted?.();
+    } catch {
+      setDeleteOpen(false);
+      setDeleteErrorOpen(true);
     } finally {
       setDeleting(false);
     }
@@ -205,6 +209,20 @@ export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Prop
             <Button variant="destructive" onClick={confirmDelete} disabled={deleting}>
               {deleting ? "Löscht..." : "Löschen"}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {/* Delete error dialog */}
+      <Dialog open={deleteErrorOpen} onOpenChange={setDeleteErrorOpen}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Löschen nicht möglich</DialogTitle>
+            <DialogDescription>
+              Du hast keine Berechtigung, diese Gruppe zu löschen.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button onClick={() => setDeleteErrorOpen(false)}>Schliessen</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

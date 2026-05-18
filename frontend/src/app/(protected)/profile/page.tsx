@@ -48,10 +48,16 @@ export default function Profil() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="w-full flex flex-col gap-4 p-4">
+      <div className="w-full flex flex-col gap-4">
         {/* Profil Header */}
         <div className="bg-secondary p-8 rounded-lg flex flex-col items-center gap-4 w-full">
-          <div className="w-20 h-20 bg-primary rounded-full"></div>
+          <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-2xl font-bold">
+              {user?.username
+                .split(" ")
+                .map((w) => w[0]?.toUpperCase())
+                .slice(0, 2)
+                .join("")}
+            </div>
           <p className="text-white font-bold">{user?.username}</p>
           <p className="text-white font-light">{user?.email}</p>
         </div>
