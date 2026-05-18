@@ -39,7 +39,15 @@ def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and
 
 @router.get("")
 def list_groups(user_id: str = Depends(verify_token_and_get_user_id)):
-    return db.list_user_groups(user_id)
+    groups = db.list_user_groups(user_id)
+    for group in groups:
+        thumb_url = gcs_service.generate_signed_download_url(
+                object_name=group["group_img_url"],
+                bucket_name=settings.gcs_thumbnail_bucket_name
+            )
+        group["group_img_url"] = thumb_url
+        
+    return groups
 
 @router.patch("/{group_id}")
 def update_group(group_id: str, payload: UpdateGroupIn, user_id: str = Depends(verify_token_and_get_user_id)):
