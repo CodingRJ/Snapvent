@@ -41,11 +41,15 @@ def create_group(payload: CreateGroupIn, user_id: str = Depends(verify_token_and
 def list_groups(user_id: str = Depends(verify_token_and_get_user_id)):
     groups = db.list_user_groups(user_id)
     for group in groups:
-        thumb_url = gcs_service.generate_signed_download_url(
-                object_name=group["group_img_url"],
+        image_path = group.get("group_image_url")
+        if image_path:
+            thumb_url = gcs_service.generate_signed_download_url(
+                object_name=image_path,
                 bucket_name=settings.gcs_thumbnail_bucket_name
             )
-        group["group_img_url"] = thumb_url
+            group["group_image_url"] = thumb_url
+        else:
+            group["group_image_url"] = None
         
     return groups
 
