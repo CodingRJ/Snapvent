@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Loader2, MoreVertical, Pen, Share2, Trash2, Users } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Button } from "~/components/ui/button";
+import { Input } from "~/components/ui/input";
+import { Textarea } from "~/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +24,7 @@ import { useAuth } from "~/context/AuthContext";
 import {
   deleteGroup as deleteGroupApi,
   fetchGroupMembers,
+  updateGroup as updateGroupApi,
   type GroupMember,
 } from "~/services/groups.service";
 import { fetchQrDataAction } from "~/services/groups.actions";
@@ -29,12 +32,37 @@ import { fetchQrDataAction } from "~/services/groups.actions";
 interface Props {
   groupId: string | number;
   groupName: string;
+  groupDescription?: string;
   onDeleted?: () => void;
+  onUpdated?: (name: string, description: string) => void;
 }
 
-export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Props) {
+export default function GroupActionsMenu({ groupId, groupName, groupDescription, onDeleted, onUpdated }: Props) {
   const { access_token } = useAuth();
   const id = String(groupId);
+
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const openEdit = () => {
+    setEditName(groupName);
+    setEditDescription(groupDescription ?? "");
+    setEditOpen(true);
+  };
+
+  const confirmEdit = async () => {
+    if (!access_token || !editName.trim()) return;
+    setSaving(true);
+    try {
+      await updateGroupApi(access_token, id, editName.trim(), editDescription.trim());
+      onUpdated?.(editName.trim(), editDescription.trim());
+      setEditOpen(false);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const [membersOpen, setMembersOpen] = useState(false);
   const [members, setMembers] = useState<GroupMember[]>([]);
@@ -118,7 +146,7 @@ export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Prop
             <Share2 size={16} />
             Teilen
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
+          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); openEdit(); }}>
             <Pen size={16} />
             Bearbeiten
           </DropdownMenuItem>
@@ -131,6 +159,45 @@ export default function GroupActionsMenu({ groupId, groupName, onDeleted }: Prop
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* Edit dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Gruppe bearbeiten</DialogTitle>
+            <DialogDescription>
+              Ändere den Namen oder die Beschreibung der Gruppe.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4 py-2">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold">Gruppenname</label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                placeholder="Gruppenname"
+              />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-bold">Beschreibung</label>
+              <Textarea
+                rows={3}
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                placeholder="Beschreibung"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)} disabled={saving}>
+              Abbrechen
+            </Button>
+            <Button onClick={confirmEdit} disabled={saving || !editName.trim()}>
+              {saving ? "Speichert..." : "Speichern"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Members dialog */}
       <Dialog open={membersOpen} onOpenChange={setMembersOpen}>

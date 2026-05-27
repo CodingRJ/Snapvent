@@ -3,6 +3,8 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL;
 export interface Group {
   id: number;
   name: string;
+  description?: string;
+  group_img_url: string;
 }
 
 export interface Thumbnail {
@@ -39,6 +41,7 @@ export async function createGroup(
   token: string,
   name: string,
   description: string,
+  usernames: string[],
 ): Promise<Group> {
   const res = await fetch(`${API_URL}/groups`, {
     method: "POST",
@@ -46,10 +49,30 @@ export async function createGroup(
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ name, description }),
+    body: JSON.stringify({ name, description, usernames }),
   });
 
   if (!res.ok) throw new Error("Gruppe konnte nicht erstellt werden");
+
+  return res.json();
+}
+
+export async function updateGroup(
+  token: string,
+  groupId: string,
+  name: string,
+  description: string,
+): Promise<Group> {
+  const res = await fetch(`${API_URL}/groups/${groupId}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ name, description }),
+  });
+
+  if (!res.ok) throw new Error("Gruppe konnte nicht aktualisiert werden");
 
   return res.json();
 }
@@ -133,4 +156,3 @@ export async function joinGroup(
 
   return res.json();
 }
-

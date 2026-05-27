@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Loader2, Plus, QrCode, Users, X } from "lucide-react";
+import { CheckCircle2, ImageOff, Loader2, Plus, QrCode, Users, X } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import {
   Empty,
@@ -102,7 +102,7 @@ function QrScanner({ onScanned }: { onScanned: (code: string) => void }) {
 }
 
 export default function Home() {
-  const { access_token } = useAuth();
+  const { access_token, user } = useAuth();
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -134,6 +134,7 @@ export default function Home() {
         access_token,
         groupName.trim(),
         groupDescription.trim(),
+        user ? [user.username] : [],
       );
       const updated = await fetchGroups(access_token);
       setGroups(updated);
@@ -180,9 +181,9 @@ export default function Home() {
   };
 
   return (
-    <div className="flex flex-col min-h-full">
-      {/* Group list */}
-      <div className="flex-1">
+    <div className="flex flex-col h-full">
+      {/* Group list — extra bottom padding on mobile clears the fixed action bar */}
+      <div className="flex-1 overflow-y-auto pb-40 md:pb-0">
         <h1 className="text-2xl font-bold text-primary mb-4">Meine Gruppen</h1>
         {groups.length === 0 ? (
           <Empty>
@@ -204,13 +205,30 @@ export default function Home() {
                 className="flex items-center gap-3 border rounded-xl p-3 cursor-pointer"
                 onClick={() => router.push(`/groups/${group.id}`)}
               >
-                <div className="w-16 h-16 border rounded-lg shrink-0" />
+                {group.group_img_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={group.group_img_url}
+                    alt={group.name}
+                    className="w-16 h-16 rounded-lg shrink-0 object-cover"
+                  />
+                ) : (
+                  <div className="w-16 h-16 border rounded-lg shrink-0 flex items-center justify-center text-muted-foreground bg-muted">
+                    <ImageOff size={20} />
+                  </div>
+                )}
                 <span className="flex-1 font-medium">{group.name}</span>
                 <GroupActionsMenu
                   groupId={group.id}
                   groupName={group.name}
+                  groupDescription={group.description ?? ""}
                   onDeleted={() =>
                     setGroups((prev) => prev.filter((g) => g.id !== group.id))
+                  }
+                  onUpdated={(name, description) =>
+                    setGroups((prev) =>
+                      prev.map((g) => g.id === group.id ? { ...g, name, description } : g)
+                    )
                   }
                 />
               </div>
@@ -219,8 +237,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* Sticky bottom actions */}
-      <div className="sticky bottom-0 bg-background pt-4 pb-16 flex flex-col gap-2">
+      {/* Action buttons — fixed above the mobile nav pill, normal flow on desktop */}
+      <div className="fixed bottom-24 left-4 right-4 z-40 flex flex-col gap-2 md:static md:left-auto md:right-auto md:bottom-auto md:pt-4 md:pb-2">
         <Button
           variant="outline"
           size="lg"

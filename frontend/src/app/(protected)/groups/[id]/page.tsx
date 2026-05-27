@@ -100,7 +100,9 @@ export default function GroupPage() {
         <GroupActionsMenu
           groupId={id}
           groupName={group?.name ?? ""}
+          groupDescription={group?.description ?? ""}
           onDeleted={() => router.push("/")}
+          onUpdated={(name, description) => setGroup((g) => g ? { ...g, name, description } : g)}
         />
       </div>
 
