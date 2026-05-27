@@ -11,7 +11,10 @@ from tinydb import TinyDB, Query, where
 import uuid
 from datetime import datetime
 from typing import Optional
-from config import get_settings
+try:
+    from config import get_settings
+except ModuleNotFoundError:
+    from backend.config import get_settings
 
 class DatabaseError(Exception):
     """Base class for database exceptions."""

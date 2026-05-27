@@ -1,9 +1,17 @@
 from fastapi import APIRouter, HTTPException, Header, Depends
 from pydantic import BaseModel
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-from db import tinydb_schema as db
-from config import get_settings
+try:
+    from google.oauth2 import id_token
+    from google.auth.transport import requests as google_requests
+except ModuleNotFoundError:
+    id_token = None
+    google_requests = None
+try:
+    from db import tinydb_schema as db
+    from config import get_settings
+except ModuleNotFoundError:
+    from backend.db import tinydb_schema as db
+    from backend.config import get_settings
 
 
 settings = get_settings()
@@ -17,6 +25,12 @@ class GCSWebhookPayload(BaseModel):
 
 def verify_gcp_oidc_token(authorization: str = Header(...)):
     """Verifies the OIDC token sent by the Google Cloud Function."""
+    if id_token is None or google_requests is None:
+        raise HTTPException(
+            status_code=503,
+            detail="google-auth is not installed in this environment."
+        )
+
     if not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Invalid Authorization header")
 

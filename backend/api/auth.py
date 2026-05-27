@@ -1,7 +1,11 @@
 from fastapi import APIRouter, HTTPException, Body, Header
 from pydantic import BaseModel
-from service.auth_service import create_access_token, hash_password, verify_password
-from db import tinydb_schema as db
+try:
+    from service.auth_service import create_access_token, hash_password, verify_password
+    from db import tinydb_schema as db
+except ModuleNotFoundError:
+    from backend.service.auth_service import create_access_token, hash_password, verify_password
+    from backend.db import tinydb_schema as db
 
 router = APIRouter()
 
